@@ -65,7 +65,7 @@
       flex: 1;
       height: 100vh;
       box-sizing: border-box;
-      background-color: #03244d;
+      background-color: #ffffff; /* White background to match the Google Doc */
       order: 2; /* Second on desktop (right) */
     }
 
@@ -91,7 +91,8 @@
         order: 1; /* Moves to TOP on mobile */
         flex: none;
         width: 100%;
-        height: 1500px; /* Forced large height to outgrow internal content and kill inner scroll */
+        height: 100vh;
+        min-height: 850px; /* Gives the Google Doc table plenty of room on mobile */
         border-bottom: 2px solid #dd550c;
       }
 
@@ -267,9 +268,9 @@
       </div>
     </div>
 
-    <!-- Right Column: Weekly Schedule App (Expanded on desktop, Top on mobile) -->
+    <!-- Right Column: Embedded Google Doc (Expanded on desktop, Top on mobile) -->
     <div class="schedule-column">
-      <iframe scrolling="no" src="https://script.google.com/macros/s/AKfycbwnkrLUZBW-UpV_M4RiJdLZKCD0xpLq1Llt-eJyLvG7NQQ6wvVQbM5Kx__ZmpYhEjsK-g/exec" title="Weekly Schedule"></iframe>
+      <iframe src="https://docs.google.com/document/d/e/2PACX-1vTOWjPYJo8vDvNGZDTln_PQwSVt_CKvbRT9_skD7AqOf0ZvW5LxXxajHE73ba5D57PWmZS4pGb2F_lA/pub?embedded=true" title="Weekly Schedule"></iframe>
     </div>
   </div>
 
