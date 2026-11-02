@@ -178,7 +178,7 @@ body.clear, body.clear #events{background:transparent}
 @container sched (max-width:999px){#sched .gl{grid-template-columns:repeat(5,minmax(240px,1fr))}}
 #sched .gl .card{display:grid;grid-row:span 7;grid-template-rows:subgrid;row-gap:0;align-content:start;font-size:clamp(17px,1.5cqw,28px)}
 #sched .gl .card.today{border-color:#fff;border-top-color:var(--orange);box-shadow:0 0 0 2px var(--orange)}
-#sched .gl .date{font-size:1.7em}
+#sched .gl .date{font-size:1.4em}
 #sched .gl .date small{display:block;font:600 .45em "Source Sans 3",sans-serif;color:var(--mute);margin-top:2px}
 #sched .gl .cycle{font-size:.5em}
 #sched .gl .cycle b{font-size:2.4em}
@@ -198,6 +198,10 @@ body.clear, body.clear #events{background:transparent}
 #sched .sec li.hl+li.hl{padding-left:1.1em;font-weight:600}
 #sched{container:sched / inline-size}
 #sched .gl .card,#sched .week .card{min-width:0;grid-template-columns:minmax(0,1fr)}
+#sched .gl .card{container:glcard / inline-size}
+#sched .gl .top{flex-direction:column;align-items:flex-start;gap:8px}
+#sched .gl .date{font-size:min(1.6em,18cqi)}
+@container glcard (min-width:240px){#sched .gl .top{flex-direction:row;flex-wrap:nowrap;justify-content:space-between}#sched .gl .date{min-width:0;font-size:min(1.6em,11cqi)}#sched .gl .cycle{flex:none;white-space:nowrap}#sched .gl .date small{font-size:max(.45em,12px)}}
 </style>
 </head>
 <body>
