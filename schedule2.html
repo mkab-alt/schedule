@@ -376,3 +376,278 @@
       } catch (err) {
         console.warn("Calendar unavailable", err);
       }
+      return { dayByDate, others };
+    }
+
+    async function loadEvents() {
+      const container = document.getElementById("eventsList");
+      try {
+        const calendarPromise = loadCalendar();
+
+        const response = await fetch(csvUrl);
+        const csvText = await response.text();
+        const rows = parseCSV(csvText);
+
+        container.innerHTML = "";
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayKey = isoKey(today);
+
+        const validEvents = [];
+
+        for (let i = 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row || row.length < 3) continue;
+
+          const eventTitle = row[2] ? row[2].trim() : "";
+          const eventDateStr = row[3] ? row[3].trim() : "";
+          const docUrl = row[4] ? row[4].trim() : "";
+          const startTime = row.length > 6 && row[6] ? row[6].trim().replace(":00 ", " ") : "";
+          const endTime = row.length > 7 && row[7] ? row[7].trim().replace(":00 ", " ") : "";
+
+          if (!eventTitle || eventTitle === "Event Title") continue;
+
+          let eventDateObj = null;
+          let dateKey = "";
+          let formattedDateBadge = eventDateStr;
+
+          if (eventDateStr) {
+            eventDateObj = new Date(eventDateStr);
+            if (!isNaN(eventDateObj)) {
+              if (eventDateObj < today) continue;
+              dateKey = isoKey(eventDateObj);
+              formattedDateBadge = badgeText(eventDateObj);
+            }
+          }
+
+          let timeDisplay = startTime;
+          if (startTime && endTime) {
+            timeDisplay = `${startTime} - ${endTime}`;
+          }
+
+          validEvents.push({
+            type: "event",
+            title: eventTitle,
+            dateStr: formattedDateBadge,
+            dateObj: eventDateObj,
+            dateKey: dateKey,
+            url: docUrl,
+            timeDisplay: timeDisplay
+          });
+        }
+
+        const cal = await calendarPromise;
+
+        const claimed = new Set();
+        validEvents.forEach(evt => {
+          if (!evt.dateKey) return;
+          let best = null;
+          let bestScore = 0;
+          cal.others.forEach(item => {
+            if (evt.dateKey < item.start || evt.dateKey > item.end) return;
+            const score = titleMatch(evt.title, item.title);
+            if (score > bestScore) { best = item; bestScore = score; }
+          });
+          if (best && bestScore >= MATCH_THRESHOLD) claimed.add(best);
+        });
+
+        const ghostsByDate = {};
+        cal.others.forEach(item => {
+          if (item.end < todayKey) return;
+          if (claimed.has(item)) return;
+          if (item.hidden) return;
+          if (!ghostsByDate[item.start]) ghostsByDate[item.start] = [];
+          ghostsByDate[item.start].push(item);
+        });
+
+        const allCards = validEvents.slice();
+        Object.keys(ghostsByDate).forEach(dateKey => {
+          allCards.push({
+            type: "ghost",
+            dateKey: dateKey,
+            dateObj: parseISO(dateKey),
+            items: ghostsByDate[dateKey]
+          });
+        });
+
+        allCards.sort((a, b) => {
+          const timeA = (a.dateObj && !isNaN(a.dateObj)) ? a.dateObj.getTime() : Infinity;
+          const timeB = (b.dateObj && !isNaN(b.dateObj)) ? b.dateObj.getTime() : Infinity;
+          return timeA - timeB;
+        });
+
+        allCards.forEach(evt => {
+          const dayNum = cal.dayByDate[evt.dateKey];
+          const dayBadge = dayNum ? `<div class="day-badge">Day ${esc(dayNum)}</div>` : "";
+          const card = document.createElement("div");
+
+          if (evt.type === "ghost") {
+            card.className = "card ghost";
+            const list = evt.items.map(item => {
+              let range = "";
+              if (item.end !== item.start) {
+                const endDate = parseISO(item.end);
+                range = ` <span class="ghost-range">(through ${endDate.getMonth() + 1}/${endDate.getDate()})</span>`;
+              }
+              return `<li>${esc(item.title)}${range}</li>`;
+            }).join("");
+
+            card.innerHTML = `
+              <div class="card-top">
+                <div class="date-badge">${badgeText(evt.dateObj)}</div>
+                ${dayBadge}
+              </div>
+              <div class="ghost-label">On the school calendar, no event form yet</div>
+              <ul class="ghost-list">${list}</ul>
+            `;
+          } else {
+            card.className = "card";
+            card.innerHTML = `
+              <div>
+                <div class="card-top">
+                  <div class="date-badge">${esc(evt.dateStr || "Upcoming")}</div>
+                  ${dayBadge}
+                </div>
+                <h3 class="event-title">${esc(evt.title)}</h3>
+                ${evt.timeDisplay ? `<div class="event-time">🕒 ${esc(evt.timeDisplay)}</div>` : ""}
+              </div>
+              ${evt.url && evt.url.startsWith("http") ? `<a class="doc-button" href="${esc(evt.url)}" target="_blank">View 1-Pager</a>` : ""}
+            `;
+          }
+
+          container.appendChild(card);
+        });
+
+        if (allCards.length === 0) {
+          container.innerHTML = "<div class=\"no-events\">No upcoming events scheduled.</div>";
+        }
+
+        fitCards();
+      } catch (err) {
+        container.innerHTML = "<div class=\"no-events\">Unable to load events at this time.</div>";
+      }
+    }
+
+    let expanded = false;
+    let moreBtn = null;
+
+    function getMoreButton() {
+      if (!moreBtn) {
+        moreBtn = document.createElement("button");
+        moreBtn.type = "button";
+        moreBtn.className = "more-note";
+        moreBtn.addEventListener("click", () => {
+          expanded = !expanded;
+          fitCards();
+        });
+        document.getElementById("eventsCol").appendChild(moreBtn);
+      }
+      return moreBtn;
+    }
+
+    function fitCards() {
+      const list = document.getElementById("eventsList");
+      const eventsCol = document.getElementById("eventsCol");
+      const btn = getMoreButton();
+      const cards = Array.from(list.children).filter(el => el.classList.contains("card"));
+
+      document.body.classList.remove("expanded");
+      cards.forEach(c => { c.style.display = ""; });
+      btn.style.display = "none";
+
+      const isMobile = window.innerWidth <= 768;
+
+      if (isMobile) {
+        const initialVisibleCount = 3;
+        if (cards.length > initialVisibleCount) {
+          if (expanded) {
+            btn.textContent = "Show fewer";
+            btn.style.display = "block";
+          } else {
+            cards.forEach((c, index) => {
+              if (index >= initialVisibleCount) c.style.display = "none";
+            });
+            btn.textContent = "+ " + (cards.length - initialVisibleCount) + " more";
+            btn.style.display = "block";
+          }
+        }
+        return;
+      }
+
+      const containerRect = eventsCol.getBoundingClientRect();
+      const limit = containerRect.top + window.innerHeight - 16;
+      const overflowing = cards.some(c => c.getBoundingClientRect().bottom > limit);
+
+      if (!overflowing) {
+        expanded = false;
+        return;
+      }
+
+      if (expanded) {
+        document.body.classList.add("expanded");
+        btn.textContent = "Show fewer";
+        btn.style.display = "block";
+        return;
+      }
+
+      btn.textContent = "+ 99 more";
+      btn.style.display = "block";
+      const reserve = btn.offsetHeight + 20;
+
+      const rows = [];
+      cards.forEach(c => {
+        const r = c.getBoundingClientRect();
+        const last = rows[rows.length - 1];
+        if (last && Math.abs(last.top - r.top) < 4) {
+          last.cards.push(c);
+          last.bottom = Math.max(last.bottom, r.bottom);
+        } else {
+          rows.push({ top: r.top, bottom: r.bottom, cards: [c] });
+        }
+      });
+
+      let hiddenCount = 0;
+      let hiding = false;
+      rows.forEach(row => {
+        if (hiding || row.bottom > limit - reserve) {
+          hiding = true;
+          row.cards.forEach(c => { c.style.display = "none"; hiddenCount++; });
+        }
+      });
+      btn.textContent = "+ " + hiddenCount + " more";
+    }
+
+    let resizeTimer;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => { if (!expanded) fitCards(); }, 150);
+    });
+
+    function parseCSV(text) {
+      const lines = text.split(/\r\n|\n/);
+      return lines.map(line => {
+        const result = [];
+        let cell = "";
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          if (c === "\"") {
+            inQuotes = !inQuotes;
+          } else if (c === "," && !inQuotes) {
+            result.push(cell);
+            cell = "";
+          } else {
+            cell += c;
+          }
+        }
+        result.push(cell);
+        return result;
+      });
+    }
+
+    loadEvents();
+  })();
+  </script>
+</body>
+</html>
