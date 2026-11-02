@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="https://mkab-alt.github.io/schedule/apple-touch-icon.png">
 <link rel="icon" type="image/png" href="https://mkab-alt.github.io/schedule/monarch2.png">
 <meta name="theme-color" content="#03244d">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Source+Sans+3:wght@400;600&display=swap">
 
 <style>
   /* ---------- page layout ---------- */
@@ -23,14 +23,12 @@
 
   /* Wide screens: schedule on the left, events column (max 400px) on the right */
   .layout { display: flex; align-items: flex-start; }
-  #sched {
-    flex: 1; min-width: 0; display: block; border: 0;
-    height: 100vh; height: 100dvh;   /* updated by the script once the schedule reports its height */
-  }
+  #sched { flex: 1; min-width: 0; }
   #events {
     flex: none; width: 400px; max-width: 400px;
     position: sticky; top: 0;
-    height: 100vh; height: 100dvh;
+    height: calc(100vh - env(safe-area-inset-top, 0px));
+    height: calc(100dvh - env(safe-area-inset-top, 0px));
     overflow: hidden;   /* no scrollbar: cards are fitted to the column */
     padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
     box-sizing: border-box;
@@ -43,12 +41,14 @@
   /* Narrow screens (phones): stack, events go underneath */
   @media (max-width: 799px) {
     .layout { display: block; }
-    #sched { width: 100%; }
     #events {
       width: auto; max-width: none; position: static;
       height: auto; overflow: visible;
     }
   }
+
+  /* ?events=off shows just the schedule */
+  body.no-events #events { display: none; }
 
   .events-heading {
     margin: 0 0 12px; color: #f4f6fa;
@@ -56,13 +56,13 @@
   }
 
   /* ---------- event cards ---------- */
-  .cards-container {
+  #events .cards-container{
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
     gap: 16px;
     align-items: start;
   }
-  .card {
+  #events .card{
     background: #ffffff;
     border-radius: 8px;
     padding: 16px;
@@ -74,54 +74,136 @@
     transition: transform 0.15s ease, box-shadow 0.15s ease;
     border-top: 4px solid #dd550c;
   }
-  .card:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(3, 36, 77, 0.15); }
+  #events .card:hover{ transform: translateY(-2px); box-shadow: 0 6px 12px rgba(3, 36, 77, 0.15); }
 
-  .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
-  .date-badge, .day-badge {
+  #events .card-top{ display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
+  #events .date-badge, #events .day-badge{
     display: inline-block; background-color: #dd550c; color: #ffffff;
     font-size: 0.8rem; font-weight: 700; padding: 4px 10px; border-radius: 4px;
     text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
   }
-  .event-title { font-size: 1.15rem; font-weight: 700; margin: 0 0 8px 0; color: #03244d; line-height: 1.3; }
-  .event-time {
+  #events .event-title{ font-size: 1.15rem; font-weight: 700; margin: 0 0 8px 0; color: #03244d; line-height: 1.3; }
+  #events .event-time{
     font-size: 0.9rem; color: #5f6368; margin: 0 0 16px 0; font-weight: 500;
     display: flex; align-items: center; gap: 6px;
   }
-  .doc-button {
+  #events .doc-button{
     display: inline-flex; align-items: center; justify-content: center; text-decoration: none;
     background-color: #03244d; color: #ffffff !important; font-size: 0.85rem; font-weight: 600;
     padding: 10px 12px; border-radius: 4px; text-align: center; transition: background-color 0.2s ease;
   }
-  .doc-button:hover { background-color: #021a38; }
-  .no-events { color: #a0a0a0; font-style: italic; font-weight: 500; }
+  #events .doc-button:hover{ background-color: #021a38; }
+  #events .no-events{ color: #a0a0a0; font-style: italic; font-weight: 500; }
 
   /* Ghost cards: on the school calendar, but no event form yet */
-  .card.ghost {
+  #events .card.ghost{
     background: #292929; border: 1px dashed #5c6370; border-top: 3px dashed #b8652f;
     box-shadow: none; padding: 12px; justify-content: flex-start;
   }
-  .card.ghost:hover { transform: none; box-shadow: none; }
-  .ghost .card-top { margin-bottom: 8px; }
-  .ghost .date-badge, .ghost .day-badge { background: transparent; font-size: 0.7rem; padding: 2px 8px; }
-  .ghost .date-badge { color: #aab2c0; border: 1px solid #5c6370; }
-  .ghost .day-badge { color: #ff7a33; border: 1px solid #dd550c; }
-  .ghost-label { font-size: 0.75rem; color: #9aa1ad; margin: 0 0 6px 0; }
-  .ghost-list { margin: 0; padding-left: 18px; font-size: 0.9rem; color: #d5d9e0; line-height: 1.4; }
-  .ghost-range { color: #9aa1ad; font-size: 0.8rem; }
+  #events .card.ghost:hover{ transform: none; box-shadow: none; }
+  #events .ghost .card-top{ margin-bottom: 8px; }
+  #events .ghost .date-badge, #events .ghost .day-badge{ background: transparent; font-size: 0.7rem; padding: 2px 8px; }
+  #events .ghost .date-badge{ color: #aab2c0; border: 1px solid #5c6370; }
+  #events .ghost .day-badge{ color: #ff7a33; border: 1px solid #dd550c; }
+  #events .ghost-label{ font-size: 0.75rem; color: #9aa1ad; margin: 0 0 6px 0; }
+  #events .ghost-list{ margin: 0; padding-left: 18px; font-size: 0.9rem; color: #d5d9e0; line-height: 1.4; }
+  #events .ghost-range{ color: #9aa1ad; font-size: 0.8rem; }
 
   /* "+ N more" button: click to show the rest, click again to collapse */
-  .more-note {
+  #events .more-note{
     display: none; width: 100%; margin-top: 16px; padding: 10px 12px;
     background: transparent; color: #cfd4dc; border: 1px dashed #5c6370; border-radius: 8px;
     font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer;
     transition: border-color 0.2s ease, color 0.2s ease;
   }
-  .more-note:hover, .more-note:focus-visible { border-color: #dd550c; color: #ffffff; outline: none; }
+  #events .more-note:hover, #events .more-note:focus-visible{ border-color: #dd550c; color: #ffffff; outline: none; }
+
+  /* ---------- weekly schedule (from Index.html) ---------- */
+:root{--navy2:#0a3366;--orange:#dd550c;--ink:#f4f6fa;--mute:#a9b8cf;--line:#1d4478;color-scheme:dark}
+#sched{color:var(--ink);font:400 17px/1.35 "Source Sans 3",system-ui,sans-serif}
+#sched *{box-sizing:border-box}
+body.clear, body.clear #events{background:transparent}
+#sched .loading{color:var(--mute);font-style:italic}
+#sched header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:18px 24px 6px}
+#sched h1{font:700 30px/1 "Barlow Condensed","Arial Narrow",sans-serif;margin:0;letter-spacing:.02em}
+#sched .tabs{display:flex;gap:6px;flex-wrap:wrap}
+#sched .tabs button{background:transparent;color:var(--mute);border:1px solid var(--line);border-radius:6px;padding:6px 12px;font:600 14px "Source Sans 3",sans-serif;cursor:pointer}
+#sched .tabs button[aria-pressed="true"]{background:var(--orange);border-color:var(--orange);color:#fff}
+#sched .tabs button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+#sched main{padding:12px 24px 28px}
+#sched .card{background:var(--navy2);border:1px solid var(--line);border-top:6px solid var(--orange);border-radius:10px;padding:18px 20px}
+#sched .top{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+#sched .date{font:700 44px/1 "Barlow Condensed","Arial Narrow",sans-serif}
+#sched .cycle{background:var(--orange);color:#fff;border-radius:8px;padding:6px 14px;text-align:center;font:700 14px "Barlow Condensed",sans-serif;letter-spacing:.04em}
+#sched .cycle b{display:block;font-size:40px;line-height:1}
+#sched .theme{margin:12px 0 0;padding:10px 14px;border-left:5px solid var(--orange);background:rgba(221,85,12,.14);border-radius:0 8px 8px 0}
+#sched .theme strong{font:700 24px "Barlow Condensed",sans-serif;display:block}
+#sched .theme span{color:var(--mute);font-size:15px}
+#sched .attire{color:var(--mute);margin:8px 0 0;font-size:15px}
+#sched .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;margin-top:22px}
+#sched .sec{background:rgba(255,255,255,.05);border-left:5px solid var(--orange);border-radius:0 8px 8px 0;padding:10px 14px 12px}
+#sched .sec h3{margin:0;font:700 22px "Barlow Condensed",sans-serif;color:#fff}
+#sched .sec .t{color:var(--orange);font-weight:600;font-size:15px;filter:brightness(1.25)}
+#sched .sec ul{margin:6px 0 0;padding:0;list-style:none}
+#sched .sec li{padding:3px 0}
+#sched .week{display:grid;grid-template-columns:repeat(5,minmax(240px,1fr));gap:0 12px;overflow-x:auto;padding-bottom:6px}
+#sched .week .card{padding:14px;border-top-width:5px;font-size:clamp(15px,1.2vw,22px);display:grid;grid-template-rows:subgrid;row-gap:0;align-content:start}
+#sched .week .sec{margin-top:10px}
+#sched .week .theme{margin-top:10px}
+#sched .week .card.today{border-color:#fff;border-top-color:var(--orange);box-shadow:0 0 0 2px var(--orange)}
+#sched .week .date{font-size:28px}
+#sched .week .cycle b{font-size:28px}
+#sched .week .sec h3{font-size:18px}
+#sched .week .theme strong{font-size:19px}
+#sched .hide{display:none}
+@media (min-width:1000px){#sched .week{grid-template-columns:repeat(5,minmax(0,1fr))}}
+#sched .tl{margin:0 0 2px;font:700 22px "Barlow Condensed",sans-serif;color:#fff}
+#sched .week .tl{font-size:18px}
+#sched .one{font-size:clamp(19px,1.7vw,30px)}
+#sched .one .date{font-size:1.8em}
+#sched .one .cycle{font-size:.75em}
+#sched .one .cycle b{font-size:3.3em}
+#sched .one .tl{font-size:1.3em}
+#sched .one .theme strong{font-size:1.6em}
+#sched .one .theme span{font-size:.8em}
+#sched .one .attire{font-size:.7em}
+#sched .one .sec h3{font-size:1.4em}
+#sched .one .sec .t{font-size:.8em}
+#sched .one .sec li{padding:.2em 0}
+#sched .note{color:var(--mute);font-size:13px;padding:0 24px 20px}
+#sched .one .attire{font-size:1em;color:var(--ink);font-weight:600}
+#sched .one .theme span{font-size:1em;color:var(--ink)}
+#sched .one .sec .t{font-size:1.25em;font-weight:700}
+#sched .gl{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0 14px;overflow-x:auto}
+@media (max-width:999px){#sched .gl{grid-template-columns:repeat(5,minmax(240px,1fr))}}
+#sched .gl .card{display:grid;grid-row:span 7;grid-template-rows:subgrid;row-gap:0;align-content:start;font-size:clamp(17px,1.5vw,28px)}
+#sched .gl .card.today{border-color:#fff;border-top-color:var(--orange);box-shadow:0 0 0 2px var(--orange)}
+#sched .gl .date{font-size:1.7em}
+#sched .gl .date small{display:block;font:600 .45em "Source Sans 3",sans-serif;color:var(--mute);margin-top:2px}
+#sched .gl .cycle{font-size:.5em}
+#sched .gl .cycle b{font-size:2.4em}
+#sched .gl .theme{margin-top:12px}
+#sched .gl .tl{font-size:1em}
+#sched .gl .theme strong{font-size:1.25em}
+#sched .gl .attire{font-weight:600;color:var(--ink);font-size:.9em}
+#sched .gl .sec{margin-top:12px}
+#sched .gl .sec h3{font-size:1.15em}
+#sched .gl .sec .t{font-size:1.2em;font-weight:700}
+#sched .gl .sp{background:rgba(221,85,12,.28)}
+#sched .gl .big{font-size:1.2em;font-weight:600}
+#sched .note:empty{display:none}
 </style>
 </head>
 <body>
 <div class="layout">
-  <iframe id="sched" src="https://script.google.com/macros/s/AKfycbwnkrLUZBW-UpV_M4RiJdLZKCD0xpLq1Llt-eJyLvG7NQQ6wvVQbM5Kx__ZmpYhEjsK-g/exec" title="Weekly Schedule"></iframe>
+  <section id="sched" aria-label="Weekly schedule">
+    <header>
+      <h1 id="title">Happening today</h1>
+      <div class="tabs" id="tabs" role="group" aria-label="View"></div>
+    </header>
+    <main id="out"><p class="loading">Loading schedule…</p></main>
+    <p class="note" id="note"></p>
+  </section>
 
   <aside id="events" aria-label="Upcoming events">
     <h2 class="events-heading">Upcoming events</h2>
@@ -132,32 +214,110 @@
 </div>
 
 <script>
-// ================= Schedule frame sizing =================
-// The schedule (Index.html in Apps Script) reports its content height.
-// Phones: the frame is exactly that tall, so there's no inner scrollbar.
-// Wide screens: at least the full screen height, taller if the schedule needs it.
-(function () {
-  const NARROW = window.matchMedia("(max-width: 799px)");
-  const frame = document.getElementById("sched");
-  let schedHeight = 0;
-
-  function sizeFrame() {
-    if (!schedHeight) return;
-    const h = NARROW.matches ? schedHeight : Math.max(window.innerHeight, schedHeight);
-    frame.style.height = h + "px";
+// ================= Weekly schedule =================
+// Data comes from Apps Script (Code.gs) as JSON. The last copy is kept on the
+// phone so the page shows something instantly while the fresh copy loads.
+var FEED_URL = "https://script.google.com/macros/s/AKfycbwnkrLUZBW-UpV_M4RiJdLZKCD0xpLq1Llt-eJyLvG7NQQ6wvVQbM5Kx__ZmpYhEjsK-g/exec?format=json";
+var CACHE_KEY = "weeklyScheduleDays";
+var DAYS = [];
+var SLOTS=[];
+function computeSlots(){SLOTS=[];DAYS.forEach(function(d){if(d.secs){d.secs.forEach(function(x){if(SLOTS.indexOf(x[0])<0)SLOTS.push(x[0])})}})}
+var q=new URLSearchParams(location.search);
+var now=new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"});
+var real=-1, sel=0, view=q.get("view")==="week"?"week":(q.get("view")==="glance"?"glance":"today");
+if(q.get("bg")==="clear")document.body.className="clear";
+function esc(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;")}
+function card(d,i,small){
+  if(!d) return '';
+  var h='<article class="card'+(i===real?' today':'')+(small?'':' one')+'"><div class="top"><div class="date">'+esc(d.label)+'</div><div class="cycle">CYCLE DAY<b>'+(d.cycle||"")+'</b></div></div>';
+  var th=d.theme?d.theme:(d.special?[d.special,""]:null);
+  if(th)h+='<div class="theme">'+(d.theme?'<h3 class="tl">'+esc(d.themeLabel||"")+'</h3>':'')+'<strong>'+esc(th[0])+'</strong>'+(th[1]?'<span>'+esc(th[1])+'</span>':'')+'</div>';
+  h+='<p class="attire">Attire: '+esc(d.attire)+(d.note?'. '+esc(d.note):'')+'</p><div class="'+(small?'':'grid')+'">';
+  if(d.secs){
+    d.secs.forEach(function(s){
+      h+='<section class="sec"><h3>'+esc(s[0])+'</h3>'+(s[1]?'<div class="t">'+esc(s[1])+'</div>':'')+'<ul>'+s[2].map(function(x){return '<li>'+esc(x)+'</li>'}).join("")+'</ul></section>';
+    });
   }
-
-  window.addEventListener("message", function (e) {
-    if (!/\.googleusercontent\.com$/.test(e.origin)) return;
-    const d = e.data;
-    if (!d || d.type !== "schedHeight") return;
-    const h = Number(d.height);
-    if (!(h > 50 && h < 30000)) return;
-    schedHeight = h;
-    sizeFrame();
+  return h+'</div></article>';
+}
+function secHtml(s){return '<section class="sec"><h3>'+esc(s[0])+'</h3>'+(s[1]?'<div class="t">'+esc(s[1])+'</div>':'')+'<ul>'+s[2].map(function(x){return '<li>'+esc(x)+'</li>'}).join("")+'</ul></section>'}
+function weekCard(d,i){
+  var th=d.theme?d.theme:(d.special?[d.special,""]:null);
+  var h='<article class="card'+(i===real?' today':'')+'" style="grid-row:span '+(3+SLOTS.length)+'"><div class="top"><div class="date">'+esc(d.label)+'</div><div class="cycle">CYCLE DAY<b>'+(d.cycle||"")+'</b></div></div>';
+  h+=th?'<div class="theme">'+(d.theme?'<h3 class="tl">'+esc(d.themeLabel||"")+'</h3>':'')+'<strong>'+esc(th[0])+'</strong>'+(th[1]?'<span>'+esc(th[1])+'</span>':'')+'</div>':'<div></div>';
+  h+='<p class="attire">Attire: '+esc(d.attire)+(d.note?'. '+esc(d.note):'')+'</p>';
+  SLOTS.forEach(function(n){
+    var s=d.secs?d.secs.find(function(x){return x[0]===n}):null;
+    h+=s?secHtml(s):'<div></div>';
   });
-  window.addEventListener("resize", sizeFrame);
-})();
+  return h+'</article>';
+}
+var CYC={"1":"Community Meeting","2":"Advisory","3":"Clubs","4":"Class Meetings","6":"Advisory","7":"Clubs","8":"Clubs"};
+function findSec(d,re){return d.secs?d.secs.find(function(x){return re.test(x[0])}):null}
+function glanceCard(d,i){
+  var p=d.label.split(", ");
+  var h='<article class="card'+(i===real?' today':'')+'"><div class="top"><div class="date">'+esc(p[0])+'<small>'+esc(p[1]||"")+'</small></div><div class="cycle">CYCLE DAY<b>'+esc(d.cycle||"")+'</b></div></div>';
+  h+=d.theme?'<div class="theme">'+(d.themeLabel?'<h3 class="tl">'+esc(d.themeLabel)+'</h3>':'')+'<strong>'+esc(d.theme[0])+'</strong>'+(d.theme[1]?'<span>'+esc(d.theme[1])+'</span>':'')+'</div>':'<div></div>';
+  h+='<p class="attire">Attire: '+esc(d.attire)+'</p>';
+  var m=findSec(d,/meeting/i),L=findSec(d,/^lunch/i),A=findSec(d,/after school/i),E=findSec(d,/evening/i);
+  if(d.special&&m){h+='<section class="sec sp"><h3>Special schedule</h3><div class="big">'+esc(m[1]||d.special)+'</div></section>'}
+  else if(m){var nm=CYC[d.cycle]||((m[2][0]||"Meeting").replace(/\s*[\u2013-].*$/,""));h+='<section class="sec"><h3>'+esc(nm)+'</h3>'+(m[1]?'<div class="t">'+esc(m[1])+'</div>':'')+'</section>'}
+  else h+='<div></div>';
+  var lt=L?L[1]:"";
+  if(d.special&&m){var sl=m[2].filter(function(x){return /^lunch/i.test(x)})[0];if(sl)lt=sl.replace(/^lunch:?\s*/i,"").replace(/\s*-\s*/g," \u2013 ")}
+  h+=lt?'<section class="sec"><h3>Lunch</h3><div class="t">'+esc(lt)+'</div></section>':'<div></div>';
+  h+=A?secHtml(A):'<div></div>';
+  h+=E?secHtml(E):'<div></div>';
+  return h+'</article>';
+}
+function draw(){
+  if (!DAYS || !DAYS.length) return;
+  document.getElementById("title").textContent=view!=="today"?(view==="glance"?"Week at a glance: ":"This week: ")+DAYS[0].label.split(", ")[1]+" – "+DAYS[DAYS.length-1].label.split(", ")[1]:"Happening today";
+  document.getElementById("out").innerHTML=view==="glance"?'<div class="gl">'+DAYS.map(glanceCard).join("")+'</div>':view==="week"
+    ?'<div class="week">'+DAYS.map(weekCard).join("")+'</div>'
+    :card(DAYS[sel],sel,false);
+  var t=document.getElementById("tabs");t.innerHTML="";
+  function b(txt,on,fn){var e=document.createElement("button");e.textContent=txt;e.setAttribute("aria-pressed",on);e.onclick=fn;t.appendChild(e)}
+  b("Today",view==="today",function(){view="today";draw()});
+  b("Glance",view==="glance",function(){view="glance";draw()});
+  b("Week detail",view==="week",function(){view="week";draw()});
+  if(view==="today")DAYS.forEach(function(d,i){b(d.label.split(",")[0].slice(0,3),sel===i,function(){sel=i;draw()})});
+  document.getElementById("note").textContent=real<0&&view==="today"?"Preview mode: showing "+DAYS[sel].label+". The live version picks today’s column automatically.":"";
+  fit();
+}
+// Wide screens: shrink the schedule a bit so it fits the screen without scrolling
+function fit(){
+  var o=document.getElementById("out"),s=document.getElementById("sched"),z=1;
+  o.style.zoom=1;
+  if(s.clientWidth<900)return;
+  function over(){return s.getBoundingClientRect().bottom+window.scrollY>window.innerHeight+1}
+  while(z>(view==="today"?0.55:0.7)&&over()){z-=0.02;o.style.zoom=z}
+}
+window.addEventListener("resize",fit);
+
+function useDays(d){
+  DAYS=d; computeSlots();
+  now=new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"});
+  real=DAYS.findIndex(function(x){return x.label===now});
+  if(real>=0)sel=real;else if(sel>=DAYS.length)sel=0;
+  draw();
+}
+function refresh(){
+  fetch(FEED_URL).then(function(r){return r.json()}).then(function(data){
+    if(!data||!data.days||!data.days.length)throw new Error(data&&data.error||"No schedule data");
+    try{localStorage.setItem(CACHE_KEY,JSON.stringify(data.days))}catch(e){}
+    useDays(data.days);
+  }).catch(function(err){
+    console.warn("Schedule unavailable",err);
+    if(!DAYS.length)document.getElementById("out").innerHTML='<p class="loading">Unable to load the schedule right now.</p>';
+  });
+}
+
+// First paint from the saved copy (if any), then fetch fresh data
+try{var cached=JSON.parse(localStorage.getItem(CACHE_KEY)||"null");if(cached&&cached.length)useDays(cached)}catch(e){}
+refresh();
+// Keep it fresh: re-read the doc every 5 minutes
+setInterval(refresh,300000);
 
 // ================= Event cards =================
 (function () {
@@ -172,6 +332,10 @@
 
   const NARROW = window.matchMedia("(max-width: 799px)");
   const panel = document.getElementById("events");
+  if (new URLSearchParams(location.search).get("events") === "off") {
+    document.body.classList.add("no-events");
+    return;
+  }
 
   // ---------- small helpers ----------
   function pad(n) { return String(n).padStart(2, "0"); }
