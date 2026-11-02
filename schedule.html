@@ -192,6 +192,10 @@ body.clear, body.clear #events{background:transparent}
 #sched .gl .sp{background:rgba(221,85,12,.28)}
 #sched .gl .big{font-size:1.2em;font-weight:600}
 #sched .note:empty{display:none}
+#sched .sec li.hl{color:#ff8a3d;font-weight:700}
+#sched .sec li.hl::before{content:"\2605  "}
+#sched .sec li.hl+li.hl::before{content:none}
+#sched .sec li.hl+li.hl{padding-left:1.1em;font-weight:600}
 </style>
 </head>
 <body>
@@ -227,6 +231,9 @@ var now=new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"
 var real=-1, sel=0, view=q.get("view")==="week"?"week":(q.get("view")==="glance"?"glance":"today");
 if(q.get("bg")==="clear")document.body.className="clear";
 function esc(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;")}
+function isHL(s,i){return !!(s[3]&&s[3].indexOf(i)>=0)}
+function liHtml(s){return s[2].map(function(x,i){return '<li'+(isHL(s,i)?' class="hl"':'')+'>'+esc(x)+'</li>'}).join("")}
+function hlList(list){var o="";list.forEach(function(s){if(s)s[2].forEach(function(x,i){if(isHL(s,i))o+='<li class="hl">'+esc(x)+'</li>'})});return o?'<ul>'+o+'</ul>':""}
 function card(d,i,small){
   if(!d) return '';
   var h='<article class="card'+(i===real?' today':'')+(small?'':' one')+'"><div class="top"><div class="date">'+esc(d.label)+'</div><div class="cycle">CYCLE DAY<b>'+(d.cycle||"")+'</b></div></div>';
@@ -235,12 +242,12 @@ function card(d,i,small){
   h+='<p class="attire">Attire: '+esc(d.attire)+(d.note?'. '+esc(d.note):'')+'</p><div class="'+(small?'':'grid')+'">';
   if(d.secs){
     d.secs.forEach(function(s){
-      h+='<section class="sec"><h3>'+esc(s[0])+'</h3>'+(s[1]?'<div class="t">'+esc(s[1])+'</div>':'')+'<ul>'+s[2].map(function(x){return '<li>'+esc(x)+'</li>'}).join("")+'</ul></section>';
+      h+='<section class="sec"><h3>'+esc(s[0])+'</h3>'+(s[1]?'<div class="t">'+esc(s[1])+'</div>':'')+'<ul>'+liHtml(s)+'</ul></section>';
     });
   }
   return h+'</div></article>';
 }
-function secHtml(s){return '<section class="sec"><h3>'+esc(s[0])+'</h3>'+(s[1]?'<div class="t">'+esc(s[1])+'</div>':'')+'<ul>'+s[2].map(function(x){return '<li>'+esc(x)+'</li>'}).join("")+'</ul></section>'}
+function secHtml(s){return '<section class="sec"><h3>'+esc(s[0])+'</h3>'+(s[1]?'<div class="t">'+esc(s[1])+'</div>':'')+'<ul>'+liHtml(s)+'</ul></section>'}
 function weekCard(d,i){
   var th=d.theme?d.theme:(d.special?[d.special,""]:null);
   var h='<article class="card'+(i===real?' today':'')+'" style="grid-row:span '+(3+SLOTS.length)+'"><div class="top"><div class="date">'+esc(d.label)+'</div><div class="cycle">CYCLE DAY<b>'+(d.cycle||"")+'</b></div></div>';
@@ -261,11 +268,12 @@ function glanceCard(d,i){
   h+='<p class="attire">Attire: '+esc(d.attire)+'</p>';
   var m=findSec(d,/meeting/i),L=findSec(d,/^lunch/i),A=findSec(d,/after school/i),E=findSec(d,/evening/i);
   if(d.special&&m){h+='<section class="sec sp"><h3>Special schedule</h3><div class="big">'+esc(m[1]||d.special)+'</div></section>'}
-  else if(m){var nm=CYC[d.cycle]||((m[2][0]||"Meeting").replace(/\s*[\u2013-].*$/,""));h+='<section class="sec"><h3>'+esc(nm)+'</h3>'+(m[1]?'<div class="t">'+esc(m[1])+'</div>':'')+'</section>'}
+  else if(m){var nm=CYC[d.cycle]||((m[2][0]||"Meeting").replace(/\s*[\u2013-].*$/,""));h+='<section class="sec"><h3>'+esc(nm)+'</h3>'+(m[1]?'<div class="t">'+esc(m[1])+'</div>':'')+hlList([m])+'</section>'}
   else h+='<div></div>';
   var lt=L?L[1]:"";
   if(d.special&&m){var sl=m[2].filter(function(x){return /^lunch/i.test(x)})[0];if(sl)lt=sl.replace(/^lunch:?\s*/i,"").replace(/\s*-\s*/g," \u2013 ")}
-  h+=lt?'<section class="sec"><h3>Lunch</h3><div class="t">'+esc(lt)+'</div></section>':'<div></div>';
+  var lh=hlList((d.secs||[]).filter(function(x){return /lunch/i.test(x[0])}));
+  h+=(lt||lh)?'<section class="sec"><h3>Lunch</h3>'+(lt?'<div class="t">'+esc(lt)+'</div>':'')+lh+'</section>':'<div></div>';
   h+=A?secHtml(A):'<div></div>';
   h+=E?secHtml(E):'<div></div>';
   return h+'</article>';
