@@ -147,7 +147,7 @@ body.clear, body.clear #events{background:transparent}
 #sched .sec ul{margin:6px 0 0;padding:0;list-style:none}
 #sched .sec li{padding:3px 0}
 #sched .week{display:grid;grid-template-columns:repeat(5,minmax(240px,1fr));gap:0 12px;overflow-x:auto;padding-bottom:6px}
-#sched .week .card{padding:14px;border-top-width:5px;font-size:clamp(15px,1.2vw,22px);display:grid;grid-template-rows:subgrid;row-gap:0;align-content:start}
+#sched .week .card{padding:14px;border-top-width:5px;font-size:clamp(15px,1.2cqw,22px);display:grid;grid-template-rows:subgrid;row-gap:0;align-content:start}
 #sched .week .sec{margin-top:10px}
 #sched .week .theme{margin-top:10px}
 #sched .week .card.today{border-color:#fff;border-top-color:var(--orange);box-shadow:0 0 0 2px var(--orange)}
@@ -156,10 +156,10 @@ body.clear, body.clear #events{background:transparent}
 #sched .week .sec h3{font-size:18px}
 #sched .week .theme strong{font-size:19px}
 #sched .hide{display:none}
-@media (min-width:1000px){#sched .week{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@container sched (min-width:1000px){#sched .week{grid-template-columns:repeat(5,minmax(0,1fr))}}
 #sched .tl{margin:0 0 2px;font:700 22px "Barlow Condensed",sans-serif;color:#fff}
 #sched .week .tl{font-size:18px}
-#sched .one{font-size:clamp(19px,1.7vw,30px)}
+#sched .one{font-size:clamp(19px,1.7cqw,30px)}
 #sched .one .date{font-size:1.8em}
 #sched .one .cycle{font-size:.75em}
 #sched .one .cycle b{font-size:3.3em}
@@ -175,8 +175,8 @@ body.clear, body.clear #events{background:transparent}
 #sched .one .theme span{font-size:1em;color:var(--ink)}
 #sched .one .sec .t{font-size:1.25em;font-weight:700}
 #sched .gl{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0 14px;overflow-x:auto}
-@media (max-width:999px){#sched .gl{grid-template-columns:repeat(5,minmax(240px,1fr))}}
-#sched .gl .card{display:grid;grid-row:span 7;grid-template-rows:subgrid;row-gap:0;align-content:start;font-size:clamp(17px,1.5vw,28px)}
+@container sched (max-width:999px){#sched .gl{grid-template-columns:repeat(5,minmax(240px,1fr))}}
+#sched .gl .card{display:grid;grid-row:span 7;grid-template-rows:subgrid;row-gap:0;align-content:start;font-size:clamp(17px,1.5cqw,28px)}
 #sched .gl .card.today{border-color:#fff;border-top-color:var(--orange);box-shadow:0 0 0 2px var(--orange)}
 #sched .gl .date{font-size:1.7em}
 #sched .gl .date small{display:block;font:600 .45em "Source Sans 3",sans-serif;color:var(--mute);margin-top:2px}
@@ -196,6 +196,8 @@ body.clear, body.clear #events{background:transparent}
 #sched .sec li.hl::before{content:"\2605  "}
 #sched .sec li.hl+li.hl::before{content:none}
 #sched .sec li.hl+li.hl{padding-left:1.1em;font-weight:600}
+#sched{container:sched / inline-size}
+#sched .gl .card,#sched .week .card{min-width:0;grid-template-columns:minmax(0,1fr)}
 </style>
 </head>
 <body>
@@ -274,7 +276,7 @@ function glanceCard(d,i){
   if(d.special&&m){var sl=m[2].filter(function(x){return /^lunch/i.test(x)})[0];if(sl)lt=sl.replace(/^lunch:?\s*/i,"").replace(/\s*-\s*/g," \u2013 ")}
   var lh=hlList((d.secs||[]).filter(function(x){return /lunch/i.test(x[0])}));
   h+=(lt||lh)?'<section class="sec"><h3>Lunch</h3>'+(lt?'<div class="t">'+esc(lt)+'</div>':'')+lh+'</section>':'<div></div>';
-  h+=A?secHtml(A):'<div></div>';
+  h+=A?'<section class="sec"><h3>'+esc(A[0])+'</h3>'+(A[1]?'<div class="t">'+esc(A[1])+'</div>':'')+hlList([A])+'</section>':'<div></div>';
   h+=E?secHtml(E):'<div></div>';
   return h+'</article>';
 }
