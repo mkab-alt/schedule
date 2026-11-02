@@ -21,7 +21,7 @@
     }
 
     html, body { 
-      height: 100%; 
+      min-height: 100%; 
       margin: 0;
       padding: 0;
       background-color: var(--page-bg);
@@ -78,15 +78,21 @@
 
     /* Mobile view: Stack columns vertically with Schedule on top and Events on bottom */
     @media (max-width: 768px) {
+      html, body {
+        overflow-y: auto; /* Allow natural page scrolling on mobile */
+      }
+
       .app-wrapper {
         flex-direction: column;
+        min-height: auto;
       }
 
       .schedule-column {
         order: 1; /* Moves to TOP on mobile */
         flex: none;
         width: 100%;
-        height: 100vh; /* Full viewport height to remove inner iframe scrollbar */
+        height: 100vh; /* Scaled to 100vh to fit all content comfortably */
+        min-height: 750px; /* Ensures ample vertical room for all content rows without inner scrollbar */
         border-bottom: 2px solid #dd550c;
       }
 
@@ -96,7 +102,7 @@
         width: 100%;
         max-width: 100%;
         border-right: none;
-        overflow: visible; /* Allows mobile scrolling across event cards */
+        overflow: visible;
       }
     }
 
@@ -553,7 +559,6 @@
 
       const isMobile = window.innerWidth <= 768;
 
-      // Mobile display: show initial batch of cards (3 cards) then button, rather than clipping against viewport height
       if (isMobile) {
         const initialVisibleCount = 3;
         if (cards.length > initialVisibleCount) {
@@ -571,7 +576,6 @@
         return;
       }
 
-      // Desktop layout fit calculation: measure bounds relative to events column container
       const containerRect = eventsCol.getBoundingClientRect();
       const limit = containerRect.top + window.innerHeight - 16;
       const overflowing = cards.some(c => c.getBoundingClientRect().bottom > limit);
