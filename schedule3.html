@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Weekly Schedule</title>
+
+<!-- iPhone home screen -->
+<meta name="apple-mobile-web-app-title" content="Weekly Schedule">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="https://mkab-alt.github.io/schedule/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="https://mkab-alt.github.io/schedule/monarch2.png">
+<meta name="theme-color" content="#03244d">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&display=swap">
+
+<style>
+  /* ---------- page layout ---------- */
+  :root { --navy: #03244d; --events-bg: #03244d; }
+  html, body { margin: 0; background: var(--navy); }
+  body { padding-top: env(safe-area-inset-top, 0px); box-sizing: border-box; }
+
+  /* Wide screens: schedule on the left, events column (max 400px) on the right */
+  .layout { display: flex; align-items: flex-start; }
+  #sched {
+    flex: 1; min-width: 0; display: block; border: 0;
+    height: 100vh; height: 100dvh;   /* updated by the script once the schedule reports its height */
+  }
+  #events {
+    flex: none; width: 400px; max-width: 400px;
+    position: sticky; top: 0;
+    height: 100vh; height: 100dvh;
+    overflow: hidden;   /* no scrollbar: cards are fitted to the column */
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    box-sizing: border-box;
+    background: var(--events-bg);
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  #events.expanded { overflow: auto; }   /* only after someone clicks "+ N more" */
+
+  /* Narrow screens (phones): stack, events go underneath */
+  @media (max-width: 799px) {
+    .layout { display: block; }
+    #sched { width: 100%; }
+    #events {
+      width: auto; max-width: none; position: static;
+      height: auto; overflow: visible;
+    }
+  }
+
+  .events-heading {
+    margin: 0 0 12px; color: #f4f6fa;
+    font: 700 24px/1 "Barlow Condensed", "Arial Narrow", sans-serif; letter-spacing: .02em;
+  }
+
+  /* ---------- event cards ---------- */
+  .cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+  .card {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    border-top: 4px solid #dd550c;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(3, 36, 77, 0.15); }
+
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
+  .date-badge, .day-badge {
+    display: inline-block; background-color: #dd550c; color: #ffffff;
+    font-size: 0.8rem; font-weight: 700; padding: 4px 10px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
+  }
+  .event-title { font-size: 1.15rem; font-weight: 700; margin: 0 0 8px 0; color: #03244d; line-height: 1.3; }
+  .event-time {
+    font-size: 0.9rem; color: #5f6368; margin: 0 0 16px 0; font-weight: 500;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .doc-button {
+    display: inline-flex; align-items: center; justify-content: center; text-decoration: none;
+    background-color: #03244d; color: #ffffff !important; font-size: 0.85rem; font-weight: 600;
+    padding: 10px 12px; border-radius: 4px; text-align: center; transition: background-color 0.2s ease;
+  }
+  .doc-button:hover { background-color: #021a38; }
+  .no-events { color: #a0a0a0; font-style: italic; font-weight: 500; }
+
+  /* Ghost cards: on the school calendar, but no event form yet */
+  .card.ghost {
+    background: #292929; border: 1px dashed #5c6370; border-top: 3px dashed #b8652f;
+    box-shadow: none; padding: 12px; justify-content: flex-start;
+  }
+  .card.ghost:hover { transform: none; box-shadow: none; }
+  .ghost .card-top { margin-bottom: 8px; }
+  .ghost .date-badge, .ghost .day-badge { background: transparent; font-size: 0.7rem; padding: 2px 8px; }
+  .ghost .date-badge { color: #aab2c0; border: 1px solid #5c6370; }
+  .ghost .day-badge { color: #ff7a33; border: 1px solid #dd550c; }
+  .ghost-label { font-size: 0.75rem; color: #9aa1ad; margin: 0 0 6px 0; }
+  .ghost-list { margin: 0; padding-left: 18px; font-size: 0.9rem; color: #d5d9e0; line-height: 1.4; }
+  .ghost-range { color: #9aa1ad; font-size: 0.8rem; }
+
+  /* "+ N more" button: click to show the rest, click again to collapse */
+  .more-note {
+    display: none; width: 100%; margin-top: 16px; padding: 10px 12px;
+    background: transparent; color: #cfd4dc; border: 1px dashed #5c6370; border-radius: 8px;
+    font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+  .more-note:hover, .more-note:focus-visible { border-color: #dd550c; color: #ffffff; outline: none; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <iframe id="sched" src="https://script.google.com/macros/s/AKfycbwnkrLUZBW-UpV_M4RiJdLZKCD0xpLq1Llt-eJyLvG7NQQ6wvVQbM5Kx__ZmpYhEjsK-g/exec" title="Weekly Schedule"></iframe>
+
+  <aside id="events" aria-label="Upcoming events">
+    <h2 class="events-heading">Upcoming events</h2>
+    <div class="cards-container" id="eventsList">
+      <div class="no-events">Loading upcoming events...</div>
+    </div>
+  </aside>
+</div>
+
+<script>
+// ================= Schedule frame sizing =================
+// The schedule (Index.html in Apps Script) reports its content height.
+// Phones: the frame is exactly that tall, so there's no inner scrollbar.
+// Wide screens: at least the full screen height, taller if the schedule needs it.
+(function () {
+  const NARROW = window.matchMedia("(max-width: 799px)");
+  const frame = document.getElementById("sched");
+  let schedHeight = 0;
+
+  function sizeFrame() {
+    if (!schedHeight) return;
+    const h = NARROW.matches ? schedHeight : Math.max(window.innerHeight, schedHeight);
+    frame.style.height = h + "px";
+  }
+
+  window.addEventListener("message", function (e) {
+    if (!/\.googleusercontent\.com$/.test(e.origin)) return;
+    const d = e.data;
+    if (!d || d.type !== "schedHeight") return;
+    const h = Number(d.height);
+    if (!(h > 50 && h < 30000)) return;
+    schedHeight = h;
+    sizeFrame();
+  });
+  window.addEventListener("resize", sizeFrame);
+})();
+
+// ================= Event cards =================
+(function () {
+
+  // How many cards to show on a phone before the "+ N more" button
+  const PHONE_CARDS = 3;
+
+  // Event forms (the tab your Google Form writes to)
+  const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSo40WPVWrL7-QRIvQEuEo9xWiK1DKsI9HLaITqwPSlrXgfa9OZcBP7LwN_eyUlh9gRwktRro40yny_/pub?gid=359944462&single=true&output=csv";
+  // School calendar copy (the Calendar tab, refreshed daily by the script in Code.gs)
+  const calendarCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSo40WPVWrL7-QRIvQEuEo9xWiK1DKsI9HLaITqwPSlrXgfa9OZcBP7LwN_eyUlh9gRwktRro40yny_/pub?gid=1984233197&single=true&output=csv";
+
+  const NARROW = window.matchMedia("(max-width: 799px)");
+  const panel = document.getElementById("events");
+
+  // ---------- small helpers ----------
+  function pad(n) { return String(n).padStart(2, "0"); }
+  // Local-date key like "2026-10-28" (avoids timezone shifting)
+  function isoKey(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function parseISO(s) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+    return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+  }
+  function badgeText(d) {
+    const weekday = d.toLocaleDateString("en-US", { weekday: "short" });
+    return `${d.getMonth() + 1}/${d.getDate()} - ${weekday}`;
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, c => (
+      { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]
+    ));
+  }
+
+  // ---------- rough title matching ----------
+  // How strict the match must be, from 0 to 1. Lower = hides more ghosts
+  // (risk: hides something you wanted to see). Higher = shows more ghosts
+  // (risk: a few duplicates). 0.5 means "at least half the words line up".
+  const MATCH_THRESHOLD = 0.5;
+  const FILLER_WORDS = new Set([
+    "a", "an", "and", "the", "of", "at", "to", "for", "in", "on", "with", "by", "from",
+    "event", "meeting", "day", "school", "trinity", "hall"
+  ]);
+  function titleWords(title) {
+    return String(title).toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .split(" ")
+      .filter(w => w && !FILLER_WORDS.has(w))
+      .map(w => (w.length > 3 && w.endsWith("s")) ? w.slice(0, -1) : w);
+  }
+  function sameWord(a, b) {
+    if (a === b) return true;
+    // allow "signing" ~ "sign", "retreat" ~ "retreats", etc.
+    return a.length >= 4 && b.length >= 4 && (a.startsWith(b) || b.startsWith(a));
+  }
+  // 0 = nothing in common, 1 = every word of the shorter title appears in the other
+  function titleMatch(a, b) {
+    const wa = titleWords(a), wb = titleWords(b);
+    if (!wa.length || !wb.length) return 0;
+    const shared = wa.filter(x => wb.some(y => sameWord(x, y))).length;
+    return shared / Math.min(wa.length, wb.length);
+  }
+
+  // ---------- school calendar ----------
+  // Returns { dayByDate: {"2026-10-28": "7"}, others: [{title, start, end, hidden}] }
+  async function loadCalendar() {
+    const dayByDate = {};
+    const others = [];
+    try {
+      const response = await fetch(calendarCsvUrl);
+      const rows = parseCSV(await response.text());
+      const byTitle = {};
+
+      for (let i = 1; i < rows.length; i++) {
+        const iso = (rows[i][0] || "").trim();
+        const title = (rows[i][1] || "").trim();
+        if (!parseISO(iso) || !title) continue;
+
+        const dayMatch = /^Day\s*(\d{1,2})$/i.exec(title);
+        if (dayMatch) { dayByDate[iso] = dayMatch[1]; continue; }
+
+        // Third column ("Hide") is ticked by a planner in the Calendar tab
+        const hideRaw = String(rows[i][2] || "").trim();
+        const isHidden = hideRaw !== "" && !/^(false|no|0)$/i.test(hideRaw);
+
+        if (!byTitle[title]) byTitle[title] = { dates: new Set(), hidden: new Set() };
+        byTitle[title].dates.add(iso);
+        if (isHidden) byTitle[title].hidden.add(iso);
+      }
+
+      // Combine consecutive days with the same title into one range
+      // (e.g. "Christmas Break Begins" Dec 21 - Jan 1 becomes one entry)
+      Object.keys(byTitle).forEach(title => {
+        const dates = Array.from(byTitle[title].dates).sort();
+        const hiddenDates = byTitle[title].hidden;
+        let start = dates[0];
+        let prev = dates[0];
+        // If ANY day in a multi-day range is marked Hide, the whole range is hidden
+        let rangeHidden = hiddenDates.has(dates[0]);
+        for (let i = 1; i <= dates.length; i++) {
+          const cur = dates[i];
+          const gap = cur ? Math.round((parseISO(cur) - parseISO(prev)) / 86400000) : 0;
+          if (gap !== 1) {
+            others.push({ title: title, start: start, end: prev, hidden: rangeHidden });
+            start = cur;
+            rangeHidden = cur ? hiddenDates.has(cur) : false;
+          } else if (hiddenDates.has(cur)) {
+            rangeHidden = true;
+          }
+          prev = cur;
+        }
+      });
+    } catch (err) {
+      // If the calendar can't load, the main event cards still work
+      console.warn("Calendar unavailable", err);
+    }
+    return { dayByDate, others };
+  }
+
+  // ---------- main ----------
+  async function loadEvents() {
+    const container = document.getElementById("eventsList");
+    try {
+      const calendarPromise = loadCalendar();
+      const response = await fetch(csvUrl);
+      const rows = parseCSV(await response.text());
+
+      container.innerHTML = "";
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayKey = isoKey(today);
+      const validEvents = [];
+
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length < 3) continue;
+
+        const eventTitle = row[2] ? row[2].trim() : "";
+        const eventDateStr = row[3] ? row[3].trim() : "";
+        const docUrl = row[4] ? row[4].trim() : "";
+        const startTime = row.length > 6 && row[6] ? row[6].trim().replace(":00 ", " ") : "";
+        const endTime = row.length > 7 && row[7] ? row[7].trim().replace(":00 ", " ") : "";
+
+        if (!eventTitle || eventTitle === "Event Title") continue;
+
+        let eventDateObj = null;
+        let dateKey = "";
+        let formattedDateBadge = eventDateStr;
+        if (eventDateStr) {
+          eventDateObj = new Date(eventDateStr);
+          if (!isNaN(eventDateObj)) {
+            if (eventDateObj < today) continue;
+            dateKey = isoKey(eventDateObj);
+            formattedDateBadge = badgeText(eventDateObj);
+          }
+        }
+
+        let timeDisplay = startTime;
+        if (startTime && endTime) timeDisplay = `${startTime} - ${endTime}`;
+
+        validEvents.push({
+          type: "event", title: eventTitle, dateStr: formattedDateBadge,
+          dateObj: eventDateObj, dateKey: dateKey, url: docUrl, timeDisplay: timeDisplay
+        });
+      }
+
+      // Bring in the school calendar
+      const cal = await calendarPromise;
+
+      // Each event form "claims" the ONE calendar entry on its date that
+      // its title matches best. Anything left unclaimed becomes a ghost card.
+      const claimed = new Set();
+      validEvents.forEach(evt => {
+        if (!evt.dateKey) return;
+        let best = null, bestScore = 0;
+        cal.others.forEach(item => {
+          if (evt.dateKey < item.start || evt.dateKey > item.end) return;
+          const score = titleMatch(evt.title, item.title);
+          if (score > bestScore) { best = item; bestScore = score; }
+        });
+        if (best && bestScore >= MATCH_THRESHOLD) claimed.add(best);
+      });
+
+      // Group the unclaimed calendar entries by the date they start
+      const ghostsByDate = {};
+      cal.others.forEach(item => {
+        if (item.end < todayKey) return;
+        if (claimed.has(item)) return;
+        if (item.hidden) return; // a planner ticked Hide in the Calendar tab
+        if (!ghostsByDate[item.start]) ghostsByDate[item.start] = [];
+        ghostsByDate[item.start].push(item);
+      });
+
+      const allCards = validEvents.slice();
+      Object.keys(ghostsByDate).forEach(dateKey => {
+        allCards.push({ type: "ghost", dateKey: dateKey, dateObj: parseISO(dateKey), items: ghostsByDate[dateKey] });
+      });
+
+      // Sort everything chronologically
+      allCards.sort((a, b) => {
+        const timeA = (a.dateObj && !isNaN(a.dateObj)) ? a.dateObj.getTime() : Infinity;
+        const timeB = (b.dateObj && !isNaN(b.dateObj)) ? b.dateObj.getTime() : Infinity;
+        return timeA - timeB;
+      });
+
+      // Generate the cards
+      allCards.forEach(evt => {
+        const dayNum = cal.dayByDate[evt.dateKey];
+        const dayBadge = dayNum ? `<div class="day-badge">Day ${esc(dayNum)}</div>` : "";
+        const card = document.createElement("div");
+
+        if (evt.type === "ghost") {
+          card.className = "card ghost";
+          const list = evt.items.map(item => {
+            let range = "";
+            if (item.end !== item.start) {
+              const endDate = parseISO(item.end);
+              range = ` <span class="ghost-range">(through ${endDate.getMonth() + 1}/${endDate.getDate()})</span>`;
+            }
+            return `<li>${esc(item.title)}${range}</li>`;
+          }).join("");
+          card.innerHTML = `
+            <div class="card-top">
+              <div class="date-badge">${badgeText(evt.dateObj)}</div>
+              ${dayBadge}
+            </div>
+            <div class="ghost-label">On the school calendar, no event form yet</div>
+            <ul class="ghost-list">${list}</ul>`;
+        } else {
+          card.className = "card";
+          card.innerHTML = `
+            <div>
+              <div class="card-top">
+                <div class="date-badge">${esc(evt.dateStr || "Upcoming")}</div>
+                ${dayBadge}
+              </div>
+              <h3 class="event-title">${esc(evt.title)}</h3>
+              ${evt.timeDisplay ? `<div class="event-time">🕒 ${esc(evt.timeDisplay)}</div>` : ""}
+            </div>
+            ${evt.url && evt.url.startsWith("http") ? `<a class="doc-button" href="${esc(evt.url)}" target="_blank" rel="noopener">View 1-Pager</a>` : ""}`;
+        }
+        container.appendChild(card);
+      });
+
+      if (allCards.length === 0) {
+        container.innerHTML = "<div class=\"no-events\">No upcoming events scheduled.</div>";
+      }
+      fitCards();
+    } catch (err) {
+      container.innerHTML = "<div class=\"no-events\">Unable to load events at this time.</div>";
+    }
+  }
+
+  // ---------- fit the cards ----------
+  // Wide screens: whole rows that don't fit the column are hidden behind "+ N more".
+  // Phones: the first PHONE_CARDS cards show, the rest are behind "+ N more".
+  // Clicking the button shows everything; clicking again collapses.
+  let expanded = false;
+  let moreBtn = null;
+
+  function getMoreButton() {
+    if (!moreBtn) {
+      moreBtn = document.createElement("button");
+      moreBtn.type = "button";
+      moreBtn.className = "more-note";
+      moreBtn.addEventListener("click", () => {
+        expanded = !expanded;
+        fitCards();
+        if (!expanded && NARROW.matches) panel.scrollIntoView({ block: "start" });
+      });
+      panel.appendChild(moreBtn);
+    }
+    return moreBtn;
+  }
+
+  function fitCards() {
+    const list = document.getElementById("eventsList");
+    const btn = getMoreButton();
+    const cards = Array.from(list.children).filter(el => el.classList.contains("card"));
+
+    // Start from a clean slate: collapsed, everything visible, no button
+    panel.classList.remove("expanded");
+    cards.forEach(c => { c.style.display = ""; });
+    btn.style.display = "none";
+
+    // ----- Phones -----
+    if (NARROW.matches) {
+      if (cards.length <= PHONE_CARDS) { expanded = false; return; }
+      btn.style.display = "block";
+      if (expanded) { btn.textContent = "Show fewer"; return; }
+      cards.slice(PHONE_CARDS).forEach(c => { c.style.display = "none"; });
+      btn.textContent = "+ " + (cards.length - PHONE_CARDS) + " more";
+      return;
+    }
+
+    // ----- Wide screens -----
+    const limit = panel.getBoundingClientRect().bottom - 16; // keep the column's bottom padding
+    const overflowing = cards.some(c => c.getBoundingClientRect().bottom > limit);
+    if (!overflowing) { expanded = false; return; }
+
+    if (expanded) {
+      panel.classList.add("expanded");
+      btn.textContent = "Show fewer";
+      btn.style.display = "block";
+      return;
+    }
+
+    // Collapsed: reserve room for the button, then hide whole rows that don't fit
+    btn.textContent = "+ 99 more";
+    btn.style.display = "block";
+    const reserve = btn.offsetHeight + 20;
+
+    const rows = [];
+    cards.forEach(c => {
+      const r = c.getBoundingClientRect();
+      const last = rows[rows.length - 1];
+      if (last && Math.abs(last.top - r.top) < 4) {
+        last.cards.push(c);
+        last.bottom = Math.max(last.bottom, r.bottom);
+      } else {
+        rows.push({ top: r.top, bottom: r.bottom, cards: [c] });
+      }
+    });
+
+    let hiddenCount = 0, hiding = false;
+    rows.forEach(row => {
+      if (hiding || row.bottom > limit - reserve) {
+        hiding = true;
+        row.cards.forEach(c => { c.style.display = "none"; hiddenCount++; });
+      }
+    });
+    btn.textContent = "+ " + hiddenCount + " more";
+  }
+
+  let resizeTimer;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(fitCards, 150);
+  });
+
+  function parseCSV(text) {
+    const lines = text.split(/\r\n|\n/);
+    return lines.map(line => {
+      const result = [];
+      let cell = "", inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (c === "\"") inQuotes = !inQuotes;
+        else if (c === "," && !inQuotes) { result.push(cell); cell = ""; }
+        else cell += c;
+      }
+      result.push(cell);
+      return result;
+    });
+  }
+
+  loadEvents();
+})();
+</script>
+</body>
+</html>
