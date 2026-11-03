@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TH Planner</title>
+<!-- NEW file for the planner. Your live schedule.html is not touched. -->
+<!-- iPhone home screen -->
+<meta name="apple-mobile-web-app-title" content="TH Planner">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="https://mkab-alt.github.io/schedule/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="https://mkab-alt.github.io/schedule/monarch2.png">
+<meta name="theme-color" content="#03244d">
+<style>
+  html, body { margin: 0; height: 100%; background: #03244d; }
+  body { padding-top: env(safe-area-inset-top, 0px); box-sizing: border-box; }
+  iframe { display: block; width: 100%; height: 100%; border: 0; }
+  #help {
+    display: none; position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    background: #0a3366; color: #f4f6fa; border: 1px solid #1d4478; border-top: 4px solid #dd550c;
+    border-radius: 10px; padding: 14px 16px; font: 16px/1.4 -apple-system, "Segoe UI", sans-serif;
+  }
+  #help a { display: inline-block; margin-top: 10px; background: #dd550c; color: #fff; text-decoration: none;
+    font-weight: 600; padding: 9px 14px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<iframe id="app" title="TH Planner" allow="clipboard-write"></iframe>
+<div id="help" role="status">
+  The planner didn't load here. This usually means Google sign-in can't open inside this page.
+  <br><a id="direct" href="#" target="_top">Open the planner directly</a>
+</div>
+<script>
+  // ===== Paste your planner's Web app URL (ends in /exec) here =====
+  var PLANNER_URL = "PASTE_PLANNER_EXEC_URL_HERE";
+
+  // Pass along ?view= and ?card= so links work through this page too
+  var url = PLANNER_URL + location.search;
+  document.getElementById("app").src = url;
+  document.getElementById("direct").href = url;
+
+  // The planner says "plannerReady" when it loads. If that doesn't arrive,
+  // sign-in was probably blocked inside the frame: offer the direct link.
+  var ready = false;
+  window.addEventListener("message", function (e) {
+    if (e.data && e.data.type === "plannerReady") {
+      ready = true;
+      document.getElementById("help").style.display = "none";
+    }
+  });
+  setTimeout(function () { if (!ready) document.getElementById("help").style.display = "block"; }, 10000);
+</script>
+</body>
+</html>
