@@ -26,6 +26,8 @@
   ol { margin: 8px 0 0; padding-left: 22px; }
   li { margin: 6px 0; }
   .mute { color: #a9b8cf; font-size: 14px; }
+  .ver { display: inline-block; margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: #ff8a3d; border: 1px solid #dd550c; border-radius: 12px; padding: 3px 10px; }
   a { color: #ff8a3d; }
   .loading { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: 30vh; text-align: center; }
   .spin { width: 34px; height: 34px; border: 4px solid #1d4478; border-top-color: #dd550c; border-radius: 50%; animation: spin .9s linear infinite; }
@@ -62,8 +64,10 @@
     // Clean the address first, so the Home Screen icon saves the plain link
     history.replaceState(null, "", location.pathname + (team ? "?team" : ""));
     msg.innerHTML =
+      '<p class="ver">' + (team ? 'Planning team version' : 'View-only version') + '</p>' +
       '<h1>Add ' + (team ? 'TH Planner Team' : 'TH Planner') + ' to your Home Screen</h1>' +
-      (team ? '<p class="mute">This is the planning team version: notes, quick events and Ask someone.</p>' : '') +
+      '<p class="mute">' + (team ? 'Notes, quick events, Ask someone and Seen. Signs in with your school account.'
+                                 : 'The schedule and upcoming events. No sign-in needed. Planning team members can switch over from inside it.') + '</p>' +
       '<div class="card"><b>On iPhone:</b><ol>' +
       '<li>Tap the <b>Share</b> button (square with an arrow).</li>' +
       '<li>Choose <b>Add to Home Screen</b>, then <b>Add</b>.</li>' +
@@ -79,7 +83,11 @@
     }, 12000);
   } else {
     // View-only: fetch the page and show it here (avoids Google's banner on public pages)
+    var embedded = false;
+    try { embedded = window.top !== window.self; } catch (e) { embedded = true; }
     var show = function (html) {
+      // Tell the planner it's inside an embed (e.g. your Google Site) so its links open in a new tab
+      if (embedded) html = html.replace("<head>", "<head><script>window.EMBEDDED=true<\/script>");
       frame.srcdoc = html;
       frame.style.display = "block";
       msg.style.display = "none";
