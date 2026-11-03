@@ -4,53 +4,59 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>TH Planner</title>
-<!-- NEW file for the planner. Your live schedule.html is not touched. -->
-<!-- iPhone home screen -->
+<!-- Home-screen launcher for the TH Planner. Your live schedule.html is not touched.
+     The planner needs a school Google sign-in, which iPhones block inside a frame,
+     so this page gives the phone its icon and name, then opens the planner directly. -->
 <meta name="apple-mobile-web-app-title" content="TH Planner">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="https://mkab-alt.github.io/schedule/apple-touch-icon.png">
 <link rel="icon" type="image/png" href="https://mkab-alt.github.io/schedule/monarch2.png">
 <meta name="theme-color" content="#03244d">
 <style>
-  html, body { margin: 0; height: 100%; background: #03244d; }
-  body { padding-top: env(safe-area-inset-top, 0px); box-sizing: border-box; }
-  iframe { display: block; width: 100%; height: 100%; border: 0; }
-  #help {
-    display: none; position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-    background: #0a3366; color: #f4f6fa; border: 1px solid #1d4478; border-top: 4px solid #dd550c;
-    border-radius: 10px; padding: 14px 16px; font: 16px/1.4 -apple-system, "Segoe UI", sans-serif;
-  }
-  #help a { display: inline-block; margin-top: 10px; background: #dd550c; color: #fff; text-decoration: none;
-    font-weight: 600; padding: 9px 14px; border-radius: 6px; }
+  html, body { margin: 0; min-height: 100%; background: #03244d; color: #f4f6fa;
+    font: 17px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 460px; margin: 0 auto; padding: calc(28px + env(safe-area-inset-top, 0px)) 20px 28px; }
+  h1 { font-size: 26px; margin: 0 0 10px; }
+  .card { background: #0a3366; border: 1px solid #1d4478; border-top: 5px solid #dd550c; border-radius: 12px; padding: 16px 18px; margin-top: 16px; }
+  ol { margin: 8px 0 0; padding-left: 22px; }
+  li { margin: 6px 0; }
+  a.btn { display: inline-block; margin-top: 16px; background: #dd550c; color: #fff; text-decoration: none;
+    font-weight: 600; padding: 11px 18px; border-radius: 8px; }
+  .mute { color: #a9b8cf; font-size: 14px; }
 </style>
 </head>
 <body>
-<iframe id="app" title="TH Planner" allow="clipboard-write"></iframe>
-<div id="help" role="status">
-  The planner didn't load here. This usually means Google sign-in can't open inside this page.
-  <br><a id="direct" href="#" target="_top">Open the planner directly</a>
-</div>
+<main id="msg"><p class="mute">Opening TH Planner…</p></main>
 <script>
-  // ===== Paste your planner's Web app URL (ends in /exec) here =====
+  // ===== The planner's Web app URL (ends in /exec) =====
   var PLANNER_URL = "https://script.google.com/a/macros/trinityhallnj.org/s/AKfycbwGW60g_Q6uSIdOaSxcaslmVmuuM2We5eh9yPUs9KSEd0umq9EVQ3Xji5wKPsJGWjTwqQ/exec";
 
-  // Pass along ?view= and ?card= so links work through this page too
-  var url = PLANNER_URL + location.search;
-  document.getElementById("app").src = url;
-  document.getElementById("direct").href = url;
+  var q = new URLSearchParams(location.search);
+  var setup = q.has("setup");
+  q.delete("setup");
+  var rest = q.toString();
+  var target = PLANNER_URL + (rest ? "?" + rest : "");   // ?view= and ?card= pass straight through
 
-  // The planner says "plannerReady" when it loads. If that doesn't arrive,
-  // sign-in was probably blocked inside the frame: offer the direct link.
-  var ready = false;
-  window.addEventListener("message", function (e) {
-    if (e.data && e.data.type === "plannerReady") {
-      ready = true;
-      document.getElementById("help").style.display = "none";
-    }
-  });
-  setTimeout(function () { if (!ready) document.getElementById("help").style.display = "block"; }, 10000);
+  if (setup) {
+    // Setup page: clean the address first, so the Home Screen icon saves the plain link
+    history.replaceState(null, "", location.pathname + (rest ? "?" + rest : ""));
+    document.getElementById("msg").innerHTML =
+      '<h1>Add TH Planner to your Home Screen</h1>' +
+      '<div class="card"><b>On iPhone (Safari):</b><ol>' +
+      '<li>Tap the <b>Share</b> button (square with an arrow).</li>' +
+      '<li>Choose <b>Add to Home Screen</b>, then <b>Add</b>.</li></ol>' +
+      '<p class="mute" style="margin:10px 0 0">On Android (Chrome): tap <b>⋮</b> › <b>Add to Home screen</b>.</p></div>' +
+      '<div class="card"><b>First time only:</b> the planner opens in Safari and asks you to sign in with your ' +
+      '<b>trinityhallnj.org</b> Google account. After that it opens straight to the planner.</div>' +
+      '<a class="btn" href="' + target + '">Open the planner now</a>';
+  } else {
+    location.replace(target);
+    // If the browser doesn't move on for some reason, offer a button
+    setTimeout(function () {
+      document.getElementById("msg").innerHTML =
+        '<h1>TH Planner</h1><a class="btn" href="' + target + '">Open the planner</a>' +
+        '<p class="mute">Sign in with your trinityhallnj.org Google account if asked.</p>';
+    }, 2500);
+  }
 </script>
 </body>
 </html>
