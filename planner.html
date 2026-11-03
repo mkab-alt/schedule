@@ -4,62 +4,106 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>TH Planner</title>
-<!-- Home-screen launcher for the TH Planner. Your live schedule.html is not touched.
-     The planner needs a school Google sign-in, which iPhones block inside a frame,
-     so this page gives the phone its icon and name, then opens the planner directly. -->
-<meta name="apple-mobile-web-app-title" content="TH Planner">
+<!-- TH Planner launcher (your live schedule.html is not touched).
+     planner.html              -> VIEW-ONLY planner, shown right here: full screen, no sign-in.
+     planner.html?team         -> PLANNING TEAM planner (school sign-in), opened directly.
+     add ?setup to either one  -> "Add to Home Screen" instructions for that version. -->
+<meta name="apple-mobile-web-app-title" content="TH Planner" id="apptitle">
+<meta name="apple-mobile-web-app-capable" content="yes" id="appcap">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="https://mkab-alt.github.io/schedule/apple-touch-icon.png">
 <link rel="icon" type="image/png" href="https://mkab-alt.github.io/schedule/monarch2.png">
 <meta name="theme-color" content="#03244d">
 <style>
-  html, body { margin: 0; min-height: 100%; background: #03244d; color: #f4f6fa;
+  html, body { margin: 0; height: 100%; background: #03244d; color: #f4f6fa;
     font: 17px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif; }
-  main { max-width: 460px; margin: 0 auto; padding: calc(28px + env(safe-area-inset-top, 0px)) 20px 28px; }
+  body { padding-top: env(safe-area-inset-top, 0px); box-sizing: border-box; }
+  #app { display: none; width: 100%; height: 100%; border: 0; }
+  main { max-width: 460px; margin: 0 auto; padding: 28px 20px; }
   h1 { font-size: 26px; margin: 0 0 10px; }
   .card { background: #0a3366; border: 1px solid #1d4478; border-top: 5px solid #dd550c; border-radius: 12px; padding: 16px 18px; margin-top: 16px; }
   ol { margin: 8px 0 0; padding-left: 22px; }
   li { margin: 6px 0; }
-  a.btn { display: inline-block; margin-top: 16px; background: #dd550c; color: #fff; text-decoration: none;
-    font-weight: 600; padding: 11px 18px; border-radius: 8px; }
   .mute { color: #a9b8cf; font-size: 14px; }
+  a { color: #ff8a3d; }
   .loading { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: 30vh; text-align: center; }
   .spin { width: 34px; height: 34px; border: 4px solid #1d4478; border-top-color: #dd550c; border-radius: 50%; animation: spin .9s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { .spin { animation-duration: 3s; } }
-  .loading a { color: #ff8a3d; }
 </style>
 </head>
 <body>
 <main id="msg"><div class="loading"><div class="spin" aria-hidden="true"></div><div>Opening TH Planner…</div><div class="mute" id="slow"></div></div></main>
+<iframe id="app" title="TH Planner"></iframe>
 <script>
-  // ===== The planner's Web app URL (ends in /exec) =====
-  var PLANNER_URL = "https://script.google.com/a/macros/trinityhallnj.org/s/AKfycbwGW60g_Q6uSIdOaSxcaslmVmuuM2We5eh9yPUs9KSEd0umq9EVQ3Xji5wKPsJGWjTwqQ/exec";
+  // ===== The two planner links (both end in /exec) =====
+  // Planning team: school sign-in required.
+  var TEAM_URL = "https://script.google.com/a/macros/trinityhallnj.org/s/AKfycbwGW60g_Q6uSIdOaSxcaslmVmuuM2We5eh9yPUs9KSEd0umq9EVQ3Xji5wKPsJGWjTwqQ/exec";
+  // View-only: the deployment with "Who has access: Anyone". Paste its /exec link here.
+  var PUBLIC_URL = "PASTE_PUBLIC_EXEC_URL_HERE";
+  var CACHE_KEY = "thPlannerPublicPage";
 
   var q = new URLSearchParams(location.search);
-  var setup = q.has("setup");
-  q.delete("setup");
-  var rest = q.toString();
-  var target = PLANNER_URL + (rest ? "?" + rest : "");   // ?view= and ?card= pass straight through
+  var setup = q.has("setup"), team = q.has("team");
+  q.delete("setup"); q.delete("team");
+  var rest = q.toString();                 // ?view= and ?card= pass straight through
+  var msg = document.getElementById("msg"), frame = document.getElementById("app");
+
+  if (team) {
+    // The team version leaves this page (sign-in can't happen inside a frame on iPhone),
+    // so its home-screen icon opens in the browser rather than full screen.
+    var cap = document.getElementById("appcap"); cap.parentNode.removeChild(cap);
+    document.getElementById("apptitle").setAttribute("content", "TH Planner Team");
+    document.title = "TH Planner Team";
+  }
 
   if (setup) {
-    // Setup page: clean the address first, so the Home Screen icon saves the plain link
-    history.replaceState(null, "", location.pathname + (rest ? "?" + rest : ""));
-    document.getElementById("msg").innerHTML =
-      '<h1>Add TH Planner to your Home Screen</h1>' +
+    // Clean the address first, so the Home Screen icon saves the plain link
+    history.replaceState(null, "", location.pathname + (team ? "?team" : ""));
+    msg.innerHTML =
+      '<h1>Add ' + (team ? 'TH Planner Team' : 'TH Planner') + ' to your Home Screen</h1>' +
+      (team ? '<p class="mute">This is the planning team version: notes, quick events and Ask someone.</p>' : '') +
       '<div class="card"><b>On iPhone:</b><ol>' +
       '<li>Tap the <b>Share</b> button (square with an arrow).</li>' +
       '<li>Choose <b>Add to Home Screen</b>, then <b>Add</b>.</li>' +
-      '<li>From now on, open the planner by tapping the new <b>TH Planner</b> icon.</li></ol>' +
+      '<li>From now on, open it by tapping the new icon.</li></ol>' +
       '<p class="mute" style="margin:10px 0 0">On Android (Chrome): tap <b>⋮</b> › <b>Add to Home screen</b>.</p></div>' +
-      '<div class="card"><b>First time only:</b> the planner asks you to sign in with your ' +
-      '<b>trinityhallnj.org</b> Google account. After that it opens straight to the planner.</div>' +
-      '<p class="mute" style="margin-top:18px">Just want to look now? <a href="' + target + '" style="color:#ff8a3d">Open the planner now</a>.</p>';
-  } else {
-    location.replace(target);
-    // The planner usually takes a few seconds to load. Only if it's very slow, offer a link.
+      (team ? '<div class="card"><b>First time only:</b> it asks you to sign in with your <b>trinityhallnj.org</b> Google account. ' +
+              'After that it opens straight to the planner.</div>' : '') +
+      '<p class="mute" style="margin-top:18px">Just want to look now? <a href="' + location.pathname + (team ? '?team' : '') + '">Open it now</a>.</p>';
+  } else if (team) {
+    location.replace(TEAM_URL + (rest ? "?" + rest : ""));
     setTimeout(function () {
-      document.getElementById("slow").innerHTML = 'Taking a while? <a href="' + target + '">Tap here</a>.';
+      document.getElementById("slow").innerHTML = 'Taking a while? <a href="' + TEAM_URL + (rest ? "?" + rest : "") + '">Tap here</a>.';
     }, 12000);
+  } else {
+    // View-only: fetch the page and show it here (avoids Google's banner on public pages)
+    var show = function (html) {
+      frame.srcdoc = html;
+      frame.style.display = "block";
+      msg.style.display = "none";
+    };
+    try { var cached = localStorage.getItem(CACHE_KEY); if (cached && !rest) show(cached); } catch (e) {}
+    fetch(PUBLIC_URL + "?format=html" + (rest ? "&" + rest : ""))
+      .then(function (r) { return r.text(); })
+      .then(function (html) {
+        if (!/TH Planner/.test(html)) throw new Error("Unexpected response");
+        try { localStorage.setItem(CACHE_KEY, html); } catch (e) {}
+        show(html);
+      })
+      .catch(function () {
+        if (frame.style.display !== "block")
+          document.getElementById("slow").innerHTML = 'Couldn’t load the planner. Check your connection and try again.';
+      });
+    // The planner asks for fresh data every few minutes; fetch it and send it in
+    window.addEventListener("message", function (e) {
+      if (e.source !== frame.contentWindow || !e.data || e.data.type !== "plannerNeedData") return;
+      fetch(PUBLIC_URL + "?format=json")
+        .then(function (r) { return r.json(); })
+        .then(function (d) { frame.contentWindow.postMessage({ type: "plannerData", data: d }, "*"); })
+        .catch(function () {});
+    });
   }
 </script>
 </body>
