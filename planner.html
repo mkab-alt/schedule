@@ -48,11 +48,12 @@
       '<h1>Add TH Planner to your Home Screen</h1>' +
       '<div class="card"><b>On iPhone (Safari):</b><ol>' +
       '<li>Tap the <b>Share</b> button (square with an arrow).</li>' +
-      '<li>Choose <b>Add to Home Screen</b>, then <b>Add</b>.</li></ol>' +
+      '<li>Choose <b>Add to Home Screen</b>, then <b>Add</b>.</li>' +
+      '<li>From now on, open the planner by tapping the new <b>TH Planner</b> icon.</li></ol>' +
       '<p class="mute" style="margin:10px 0 0">On Android (Chrome): tap <b>⋮</b> › <b>Add to Home screen</b>.</p></div>' +
       '<div class="card"><b>First time only:</b> the planner opens in Safari and asks you to sign in with your ' +
       '<b>trinityhallnj.org</b> Google account. After that it opens straight to the planner.</div>' +
-      '<a class="btn" href="' + target + '">Open the planner now</a>';
+      '<p class="mute" style="margin-top:18px">Just want to look now? <a href="' + target + '" style="color:#ff8a3d">Open the planner in Safari</a>.</p>';
   } else {
     location.replace(target);
     // The planner usually takes a few seconds to load. Only if it's very slow, offer a link.
