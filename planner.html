@@ -85,6 +85,7 @@
     // View-only: fetch the page and show it here (avoids Google's banner on public pages)
     var embedded = false;
     try { embedded = window.top !== window.self; } catch (e) { embedded = true; }
+    // (BUILD 5) wrapper version marker
     var show = function (html) {
       // Tell the planner it's inside an embed (e.g. your Google Site) so its links open in a new tab
       if (embedded) html = html.replace("<head>", "<head><script>window.EMBEDDED=true<\/script>");
