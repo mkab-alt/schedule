@@ -40,13 +40,14 @@
 </head>
 <body>
 <main id="msg"><div class="loading"><div class="spin" aria-hidden="true"></div><div>Opening TH Planner…</div><div class="mute" id="slow"></div></div></main>
+<p class="mute" id="lbuild" style="position:fixed;bottom:calc(6px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font-size:11px;opacity:.6;margin:0">launcher build 9</p>
 <iframe id="app" title="TH Planner"></iframe>
 <script>
   // ===== The two planner links (both end in /exec) =====
   // The planner, with school sign-in (Planning team deployment):
   var TEAM_URL = "https://script.google.com/a/macros/trinityhallnj.org/s/AKfycbwGW60g_Q6uSIdOaSxcaslmVmuuM2We5eh9yPUs9KSEd0umq9EVQ3Xji5wKPsJGWjTwqQ/exec";
   // No sign-in (Public deployment, "Who has access: Anyone"), used by ?display and ?team=KEY:
-  var PUBLIC_URL = "https://script.google.com/macros/s/AKfycbwVrLWhA_cO0kocZu6KVxoJbgrJoGqgbPpfEU_CdbhGC--CvnZulEE6TQKCslkOmYZ1bg/exec";
+  var PUBLIC_URL = "https://script.google.com/macros/s/AKfycbwpQ3JC07Jm3E2XTtWthj5KYtJz1CUtgQcnaCVD1bxb7T-U_IIczg6g2PXbvulnAnkTJA/exec";
 
   var q = new URLSearchParams(location.search);
   var setup = q.has("setup"), display = q.has("display"), key = q.get("team") || "";
@@ -70,6 +71,7 @@
     history.replaceState(null, "", door);   // so the Home Screen icon saves the plain link
     msg.innerHTML =
       '<p class="ver">' + (key ? 'Planning team · view-only' : 'Schedule & events') + '</p>' +
+      (key ? '<p class="mute">Tip: if the Add screen names it \u201CTH Planner\u201D, you can rename it \u201CTH Planner Team\u201D there.</p>' : '') +
       '<h1>Add ' + (key ? 'TH Planner Team' : 'TH Planner') + ' to your Home Screen</h1>' +
       '<p class="mute">' + (key ? 'Everything the planning team sees: events, quick events, notes and 1-pagers. No sign-in. ' +
                                   'Please don’t share this link outside the planning team.'
@@ -119,18 +121,26 @@
       frame.srcdoc = html;
       frame.style.display = "block";
       msg.style.display = "none";
+      document.getElementById("lbuild").style.display = "none";
     };
     try { var cached = localStorage.getItem(CACHE_KEY); if (cached && !rest) show(cached); } catch (e) {}
     fetch(PUBLIC_URL + "?format=html" + extra)
-      .then(function (r) { return r.text(); })
+      .then(function (r) {
+        if (!r.ok) throw new Error("the planner answered with error " + r.status);
+        return r.text();
+      })
       .then(function (html) {
-        if (!/TH Planner/.test(html)) throw new Error("Unexpected response");
+        if (!/TH Planner/.test(html)) {
+          var t = (/<title>([^<]*)/i.exec(html) || [])[1] || html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 80);
+          throw new Error("got \u201C" + t.trim() + "\u201D instead of the planner");
+        }
         try { localStorage.setItem(CACHE_KEY, html); } catch (e) {}
         show(html);
       })
-      .catch(function () {
+      .catch(function (err) {
         if (frame.style.display !== "block")
-          document.getElementById("slow").innerHTML = 'Couldn’t load the planner. Check your connection and try again.';
+          document.getElementById("slow").innerHTML = 'Couldn\u2019t load the planner (' + String(err && err.message || err).replace(/</g, "&lt;") +
+            '). <a href="' + location.href + '">Try again</a>';
       });
     // The planner asks for fresh data every few minutes; fetch it and send it in
     window.addEventListener("message", function (e) {
