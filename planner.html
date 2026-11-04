@@ -42,7 +42,7 @@
 </head>
 <body>
 <main id="msg"><div class="loading"><div class="spin" aria-hidden="true"></div><div>Opening TH Planner…</div><div class="mute" id="slow"></div></div></main>
-<p class="mute" id="lbuild" style="position:fixed;bottom:calc(6px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font-size:11px;opacity:.6;margin:0">launcher build 10</p>
+<p class="mute" id="lbuild" style="position:fixed;bottom:calc(6px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font-size:11px;opacity:.6;margin:0">launcher build 11</p>
 <iframe id="app" title="TH Planner"></iframe>
 <script>
   // ===== The two planner links (both end in /exec) =====
@@ -147,6 +147,15 @@
       });
     // The planner asks for fresh data every few minutes; fetch it and send it in
     window.addEventListener("message", function (e) {
+      // Team app: read a 1-pager for the card popup (needs the team key)
+      if (e.source === frame.contentWindow && e.data && e.data.type === "plannerNeedOnePager" && key) {
+        var id = String(e.data.id || "");
+        fetch(PUBLIC_URL + "?format=json&team=" + encodeURIComponent(key) + "&onepager=" + encodeURIComponent(id))
+          .then(function (r) { return r.json(); })
+          .then(function (d) { frame.contentWindow.postMessage({ type: "plannerOnePager", id: id, data: d }, "*"); })
+          .catch(function (err) { frame.contentWindow.postMessage({ type: "plannerOnePager", id: id, error: "couldn\u2019t reach the planner" }, "*"); });
+        return;
+      }
       if (e.source !== frame.contentWindow || !e.data || e.data.type !== "plannerNeedData") return;
       fetch(PUBLIC_URL + "?format=json" + (key ? "&team=" + encodeURIComponent(key) : ""))
         .then(function (r) { return r.json(); })
