@@ -24,7 +24,9 @@
   html, body { margin: 0; height: 100%; background: #03244d; color: #f4f6fa;
     font: 17px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif; }
   body { padding-top: env(safe-area-inset-top, 0px); box-sizing: border-box; }
-  #app { display: none; width: 100%; height: 100%; border: 0; }
+  /* The planner fills the screen below the status bar (no gaps top or bottom) */
+  #app { display: none; position: fixed; left: 0; right: 0; bottom: 0; top: env(safe-area-inset-top, 0px);
+    width: 100%; height: auto; border: 0; }
   main { max-width: 460px; margin: 0 auto; padding: 28px 20px; }
   h1 { font-size: 26px; margin: 0 0 10px; }
   .card { background: #0a3366; border: 1px solid #1d4478; border-top: 5px solid #dd550c; border-radius: 12px; padding: 16px 18px; margin-top: 16px; }
@@ -42,7 +44,7 @@
 </head>
 <body>
 <main id="msg"><div class="loading"><div class="spin" aria-hidden="true"></div><div>Opening TH Planner…</div><div class="mute" id="slow"></div></div></main>
-<p class="mute" id="lbuild" style="position:fixed;bottom:calc(6px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font-size:11px;opacity:.6;margin:0">launcher build 11</p>
+<p class="mute" id="lbuild" style="position:fixed;bottom:calc(6px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font-size:11px;opacity:.6;margin:0">launcher build 12</p>
 <iframe id="app" title="TH Planner"></iframe>
 <script>
   // ===== The two planner links (both end in /exec) =====
@@ -118,7 +120,14 @@
     // No-sign-in doors: fetch the page and show it here, full screen (avoids Google's banner)
     var extra = (key ? "&team=" + encodeURIComponent(key) : "") + (rest ? "&" + rest : "");
     var CACHE_KEY = "thPlanner:" + (key ? "team" : "display");
+    // How tall the iPhone's home-bar area is, so the planner's last line can scroll clear of it
+    var probe = document.createElement("div");
+    probe.style.cssText = "position:fixed;visibility:hidden;padding-bottom:env(safe-area-inset-bottom,0px)";
+    document.body.appendChild(probe);
+    var homeBar = parseFloat(getComputedStyle(probe).paddingBottom) || 0;
     var show = function (html) {
+      // This page already keeps the planner below the status bar, so the planner itself adds no top space
+      html = html.replace("<head>", "<head><style>:root{padding-top:0!important;padding-bottom:" + homeBar + "px!important}</style>");
       // Tell the planner when it's inside an embed (e.g. a Google Site) so its links open in a new tab
       if (embedded) html = html.replace("<head>", "<head><script>window.EMBEDDED=true<\/script>");
       frame.srcdoc = html;
