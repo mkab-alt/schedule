@@ -15,7 +15,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes" id="appcap">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="https://mkab-alt.github.io/schedule/apple-touch-icon.png">
+<!-- Home Screen icons: planner-icon.png (navy, everyone) and planner-icon-team.png (orange, team link).
+     apple-touch-icon.png stays as is for the live schedule app. -->
+<link rel="apple-touch-icon" href="https://mkab-alt.github.io/schedule/planner-icon.png" id="appicon">
 <link rel="icon" type="image/png" href="https://mkab-alt.github.io/schedule/monarch2.png">
 <meta name="theme-color" content="#03244d">
 <style>
@@ -40,7 +42,7 @@
 </head>
 <body>
 <main id="msg"><div class="loading"><div class="spin" aria-hidden="true"></div><div>Opening TH Planner…</div><div class="mute" id="slow"></div></div></main>
-<p class="mute" id="lbuild" style="position:fixed;bottom:calc(6px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font-size:11px;opacity:.6;margin:0">launcher build 9</p>
+<p class="mute" id="lbuild" style="position:fixed;bottom:calc(6px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font-size:11px;opacity:.6;margin:0">launcher build 10</p>
 <iframe id="app" title="TH Planner"></iframe>
 <script>
   // ===== The two planner links (both end in /exec) =====
@@ -61,6 +63,7 @@
   if (key) {
     document.getElementById("apptitle").setAttribute("content", "TH Planner Team");
     document.title = "TH Planner Team";
+    document.getElementById("appicon").setAttribute("href", "https://mkab-alt.github.io/schedule/planner-icon-team.png");
   }
   if (!phone) { var cap = document.getElementById("appcap"); cap.parentNode.removeChild(cap); }
 
