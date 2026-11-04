@@ -94,11 +94,13 @@
         '<span class="mute" style="word-break:break-all">' + location.origin + location.pathname + '?setup</span></div>') +
       '<div class="card"><b>In Chrome on iPhone:</b><ol>' +
       '<li>Make sure Chrome is signed in to your <b>trinityhallnj.org</b> account.</li>' +
-      '<li>Tap the <b>Share</b> button (in the address bar or the ⋯ menu).</li>' +
-      '<li>Choose <b>Add to Home Screen</b>, then <b>Add</b>.</li>' +
+      '<li>Tap <b>Open the planner</b> below and wait for it to load.</li>' +
+      '<li><b>On the planner itself</b>, tap the <b>Share</b> button (in the address bar or the ⋯ menu), ' +
+          'then <b>Add to Home Screen</b> › <b>Add</b>.</li>' +
       '<li>From now on, open it by tapping the new icon.</li></ol>' +
-      '<p class="mute" style="margin:10px 0 0">On Android (Chrome): tap <b>⋮</b> › <b>Add to Home screen</b>.</p></div>' +
-      '<p class="mute" style="margin-top:18px">Just want to look now? <a href="' + location.pathname + '">Open it now</a>.</p>';
+      '<p class="mute" style="margin:10px 0 0">Adding it from the planner (not this page) keeps it clean, with no extra bars.</p></div>' +
+      '<a class="btn" style="display:inline-block;margin-top:16px;background:#dd550c;color:#fff;text-decoration:none;font-weight:600;padding:11px 18px;border-radius:8px" href="' +
+          TEAM_URL + '">Open the planner</a>';
   } else if (!phone) {
     // Main door: the planner with school sign-in
     var target = TEAM_URL + (rest ? "?" + rest : "");
