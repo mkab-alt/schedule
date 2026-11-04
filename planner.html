@@ -42,7 +42,7 @@
 </head>
 <body>
 <main id="msg"><div class="loading"><div class="spin" aria-hidden="true"></div><div>Opening TH Planner…</div><div class="mute" id="slow"></div></div></main>
-<p class="mute" id="lbuild" style="position:fixed;bottom:calc(6px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font-size:11px;opacity:.6;margin:0">launcher build 16</p>
+<p class="mute" id="lbuild" style="position:fixed;bottom:calc(6px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font-size:11px;opacity:.6;margin:0">launcher build 17</p>
 <script>
   // ===== The two planner links (both end in /exec) =====
   // The planner, with school sign-in (Planning team deployment):
@@ -155,7 +155,11 @@
           'savePage:function(){var k=this.cacheKey;fetch(this.page).then(function(r){return r.ok?r.text():""}).then(function(h){if(/TH Planner/.test(h))try{localStorage.setItem(k,h)}catch(e){}}).catch(function(){})}' +
         '};' + (embedded ? 'window.EMBEDDED=true;' : '') + '<\/script>';
       html = html.replace("<head>", "<head>" + head);
-      document.open(); document.write(html); document.close();
+      // Replace this page with the planner. (Wait until this page has finished loading: before that,
+      // the browser would add the planner underneath the loading screen instead of replacing it.)
+      var swap = function () { document.open(); document.write(html); document.close(); };
+      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { setTimeout(swap, 0); });
+      else setTimeout(swap, 0);
     };
     var cached = null;
     try { if (!rest) cached = localStorage.getItem(CACHE_KEY); } catch (e) {}
