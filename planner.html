@@ -4,19 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>TH Planner</title>
-<!-- TH Planner launcher (your live schedule.html is not touched). Three doors:
+<!-- TH Planner launcher (your live schedule.html is not touched). Four doors:
      planner.html                -> the planner (school sign-in). Leads/Team: full planner; other staff: public look.
      planner.html?display        -> no sign-in, full screen: schedule, event titles and times. Signs, TVs, anyone's phone.
      planner.html?team=KEY       -> no sign-in, full screen: everything, view-only. Planning team phones.
                                     (KEY is in the Leads tab, cell D2. Change it there to retire old links.)
+     planner.html?bus=KEY        -> no sign-in, full screen: "TH Athletics", the bus drivers' app. Games, practices,
+                                    bus details and their notes only. (KEY is in the Leads tab, cell J2.)
+                                    Add &driver=Name to open on one driver's runs, &view=week for the week list.
      add &view=today|glance|week|planning to pick the view; add &setup for "Add to Home Screen" steps.
      planner.html?setup          -> steps for putting the SIGNED-IN planner on a phone (works best in Chrome). -->
 <meta name="apple-mobile-web-app-title" content="TH Planner" id="apptitle">
 <meta name="apple-mobile-web-app-capable" content="yes" id="appcap">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<!-- Home Screen icons: planner-icon.png (navy, everyone) and planner-icon-team.png (orange, team link).
-     apple-touch-icon.png stays as is for the live schedule app. -->
+<!-- Home Screen icons: planner-icon.png (navy, everyone), planner-icon-team.png (orange, team link) and
+     planner-icon-bus.png (the bus, drivers' link). apple-touch-icon.png stays as is for the live schedule app. -->
 <link rel="apple-touch-icon" href="https://mkab-alt.github.io/schedule/planner-icon.png" id="appicon">
 <link rel="icon" type="image/png" href="https://mkab-alt.github.io/schedule/monarch2.png">
 <meta name="theme-color" content="#03244d">
@@ -41,18 +44,18 @@
 </style>
 </head>
 <body>
-<main id="msg"><div class="loading"><div class="spin" aria-hidden="true"></div><div>Opening TH Planner…</div><div class="mute" id="slow"></div></div></main>
-<p class="mute" id="lbuild" style="position:fixed;bottom:calc(6px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font-size:11px;opacity:.6;margin:0">launcher build 17</p>
+<main id="msg"><div class="loading"><div class="spin" aria-hidden="true"></div><div id="opening">Opening TH Planner…</div><div class="mute" id="slow"></div></div></main>
+<p class="mute" id="lbuild" style="position:fixed;bottom:calc(6px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font-size:11px;opacity:.6;margin:0">launcher build 18</p>
 <script>
   // ===== The two planner links (both end in /exec) =====
   // The planner, with school sign-in (Planning team deployment):
   var TEAM_URL = "https://script.google.com/a/macros/trinityhallnj.org/s/AKfycbwGW60g_Q6uSIdOaSxcaslmVmuuM2We5eh9yPUs9KSEd0umq9EVQ3Xji5wKPsJGWjTwqQ/exec";
-  // No sign-in (Public deployment, "Who has access: Anyone"), used by ?display and ?team=KEY:
+  // No sign-in (Public deployment, "Who has access: Anyone"), used by ?display, ?team=KEY and ?bus=KEY:
   var PUBLIC_URL = "https://script.google.com/macros/s/AKfycbwpQ3JC07Jm3E2XTtWthj5KYtJz1CUtgQcnaCVD1bxb7T-U_IIczg6g2PXbvulnAnkTJA/exec";
 
   // Self-update: home-screen apps can hold on to an old copy of this page. Check GitHub for a newer
   // launcher build; if there is one, refresh the saved copy and reload once.
-  var LAUNCHER_BUILD = 14;
+  var LAUNCHER_BUILD = 18;
   try {
     fetch(location.pathname, { cache: "reload" }).then(function (r) { return r.text(); }).then(function (t) {
       var m = /var LAUNCHER_BUILD = (\d+)/.exec(t);
@@ -64,10 +67,10 @@
   } catch (e) {}
 
   var q = new URLSearchParams(location.search);
-  var setup = q.has("setup"), display = q.has("display"), key = q.get("team") || "";
-  q.delete("setup"); q.delete("display"); q.delete("team");
-  var rest = q.toString();                 // ?view= and ?card= pass straight through
-  var phone = display || key;              // the two no-sign-in, full-screen doors
+  var setup = q.has("setup"), display = q.has("display"), key = q.get("team") || "", bus = q.get("bus") || "";
+  q.delete("setup"); q.delete("display"); q.delete("team"); q.delete("bus");
+  var rest = q.toString();                 // ?view=, ?card= and ?driver= pass straight through
+  var phone = display || key || bus;       // the three no-sign-in, full-screen doors
   var msg = document.getElementById("msg");
   var embedded = false;
   try { embedded = window.top !== window.self; } catch (e) { embedded = true; }
@@ -77,20 +80,30 @@
     document.title = "TH Planner Team";
     document.getElementById("appicon").setAttribute("href", "https://mkab-alt.github.io/schedule/planner-icon-team.png");
   }
+  if (bus) {
+    document.getElementById("apptitle").setAttribute("content", "TH Athletics");
+    document.title = "TH Athletics";
+    document.getElementById("appicon").setAttribute("href", "https://mkab-alt.github.io/schedule/planner-icon-bus.png");
+    document.getElementById("opening").textContent = "Opening TH Athletics…";
+  }
   if (!phone) { var cap = document.getElementById("appcap"); cap.parentNode.removeChild(cap); }
 
-  // The address of this door (without &setup), for the Home Screen icon and "Open it now"
-  var door = location.pathname + (display ? "?display" : (key ? "?team=" + encodeURIComponent(key) : ""));
+  // The address of this door (without &setup), for the Home Screen icon and "Open it now".
+  // The drivers' door keeps &driver= so a driver's icon opens on their runs.
+  var door = location.pathname + (display ? "?display" : (key ? "?team=" + encodeURIComponent(key) :
+             (bus ? "?bus=" + encodeURIComponent(bus) + (q.get("driver") ? "&driver=" + encodeURIComponent(q.get("driver")) : "") : "")));
 
   if (setup && phone) {
     history.replaceState(null, "", door);   // so the Home Screen icon saves the plain link
+    var appName0 = key ? "TH Planner Team" : (bus ? "TH Athletics" : "TH Planner");
     msg.innerHTML =
-      '<p class="ver">' + (key ? 'Planning team · view-only' : 'Schedule & events') + '</p>' +
-      (key ? '<p class="mute">Tip: if the Add screen names it \u201CTH Planner\u201D, you can rename it \u201CTH Planner Team\u201D there.</p>' : '') +
-      '<h1>Add ' + (key ? 'TH Planner Team' : 'TH Planner') + ' to your Home Screen</h1>' +
+      '<p class="ver">' + (key ? 'Planning team · view-only' : (bus ? 'Athletics · bus schedule' : 'Schedule & events')) + '</p>' +
+      (key || bus ? '<p class="mute">Tip: if the Add screen names it “TH Planner”, you can rename it “' + appName0 + '” there.</p>' : '') +
+      '<h1>Add ' + appName0 + ' to your Home Screen</h1>' +
       '<p class="mute">' + (key ? 'Everything the planning team sees: events, quick events, notes and 1-pagers. No sign-in. ' +
                                   'Please don’t share this link outside the planning team.'
-                                : 'The schedule and upcoming events. No sign-in needed.') + '</p>' +
+                                : (bus ? 'Games, practices and bus runs, with departure times and drivers. No sign-in.'
+                                       : 'The schedule and upcoming events. No sign-in needed.')) + '</p>' +
       '<div class="card"><b>On iPhone:</b><ol>' +
       '<li>Tap the <b>Share</b> button (square with an arrow).</li>' +
       '<li>Choose <b>Add to Home Screen</b>, then <b>Add</b>.</li>' +
@@ -129,16 +142,16 @@
   } else {
     // No-sign-in doors: fetch the planner page and make it THIS page (not a frame inside it), so it fills
     // the phone screen edge to edge and scrolls behind the clock exactly like the schedule app.
-    var extra = (key ? "&team=" + encodeURIComponent(key) : "") + (rest ? "&" + rest : "");
-    var CACHE_KEY = "thPlanner:" + (key ? "team" : "display");
+    var extra = (key ? "&team=" + encodeURIComponent(key) : "") + (bus ? "&bus=" + encodeURIComponent(bus) : "") + (rest ? "&" + rest : "");
+    var CACHE_KEY = "thPlanner:" + (key ? "team" : (bus ? "bus" : "display"));
     var js = function (v) { return JSON.stringify(v).replace(/</g, "\\u003c"); };
     var icon = document.getElementById("appicon").getAttribute("href");
-    var appName = key ? "TH Planner Team" : "TH Planner";
+    var appName = key ? "TH Planner Team" : (bus ? "TH Athletics" : "TH Planner");
     var shown = false;
     var show = function (html, fromCache) {
       shown = true;
       // What the planner page needs to act as a home-screen app, plus a little helper it uses to
-      // fetch fresh data and 1-pagers (no sign-in; the team key goes along for the team app)
+      // fetch fresh data and 1-pagers (no sign-in; the team or bus key goes along)
       var head =
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">' +
         '<meta name="apple-mobile-web-app-title" content="' + appName + '">' +
@@ -147,9 +160,10 @@
         '<link rel="apple-touch-icon" href="' + icon + '">' +
         '<link rel="icon" type="image/png" href="https://mkab-alt.github.io/schedule/monarch2.png">' +
         '<meta name="theme-color" content="#03244d">' +
-        '<script>window.thPlannerHost={url:' + js(PUBLIC_URL) + ',team:' + js(key) + ',cacheKey:' + js(CACHE_KEY) +
+        '<script>window.thPlannerHost={url:' + js(PUBLIC_URL) + ',team:' + js(key) + ',bus:' + js(bus) + ',cacheKey:' + js(CACHE_KEY) +
           ',fromCache:' + (fromCache ? 'true' : 'false') + ',page:' + js(PUBLIC_URL + "?format=html" + extra) + ',' +
-          'data:function(cb){fetch(this.url+"?format=json"+(this.team?"&team="+encodeURIComponent(this.team):"")).then(function(r){return r.json()}).then(cb).catch(function(){})},' +
+          'data:function(cb){fetch(this.url+"?format=json"+(this.team?"&team="+encodeURIComponent(this.team):"")+(this.bus?"&bus="+encodeURIComponent(this.bus):""),{cache:"no-store"})' +
+            '.then(function(r){return r.json()}).then(cb).catch(function(){cb(null)})},' +
           'onePager:function(id,cb){fetch(this.url+"?format=json&team="+encodeURIComponent(this.team)+"&onepager="+encodeURIComponent(id)).then(function(r){return r.json()})' +
             '.then(function(d){cb(d&&d.error||null,d)}).catch(function(){cb("couldn\\u2019t reach the planner")})},' +
           'savePage:function(){var k=this.cacheKey;fetch(this.page).then(function(r){return r.ok?r.text():""}).then(function(h){if(/TH Planner/.test(h))try{localStorage.setItem(k,h)}catch(e){}}).catch(function(){})}' +
@@ -162,7 +176,8 @@
       else setTimeout(swap, 0);
     };
     var cached = null;
-    try { if (!rest) cached = localStorage.getItem(CACHE_KEY); } catch (e) {}
+    // The drivers' app reads &driver= and &view= from the address itself, so its saved copy works for every link
+    try { if (!rest || bus) cached = localStorage.getItem(CACHE_KEY); } catch (e) {}
     // A copy saved by an older version can't refresh itself, so start fresh instead
     if (cached && cached.indexOf("thPlannerHost") < 0) cached = null;
     if (cached) {
@@ -178,13 +193,14 @@
         .then(function (html) {
           if (!/TH Planner/.test(html)) {
             var t = (/<title>([^<]*)/i.exec(html) || [])[1] || html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 80);
-            throw new Error("got \u201C" + t.trim() + "\u201D instead of the planner");
+            throw new Error("got “" + t.trim() + "” instead of the planner");
           }
+          if (/"mode":\s*"public"/.test(html) && bus) throw new Error("this drivers’ link isn’t valid anymore. Ask for the new one");
           try { localStorage.setItem(CACHE_KEY, html); } catch (e) {}
           show(html, false);
         })
         .catch(function (err) {
-          if (!shown) document.getElementById("slow").innerHTML = 'Couldn\u2019t load the planner (' + String(err && err.message || err).replace(/</g, "&lt;") +
+          if (!shown) document.getElementById("slow").innerHTML = 'Couldn’t load ' + appName + ' (' + String(err && err.message || err).replace(/</g, "&lt;") +
             '). <a href="' + location.href + '">Try again</a>';
         });
     }
