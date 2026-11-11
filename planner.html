@@ -100,7 +100,7 @@
 </head>
 <body>
 <main id="msg"><div class="loading"><div class="spin" aria-hidden="true"></div><div id="opening">Opening TH Planner…</div><div class="mute" id="slow"></div></div></main>
-<p class="mute" id="lbuild" style="position:fixed;bottom:calc(6px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font-size:11px;opacity:.6;margin:0">launcher build 19</p>
+<p class="mute" id="lbuild" style="position:fixed;bottom:calc(6px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font-size:11px;opacity:.6;margin:0">launcher build 20</p>
 <script>
   // ===== The two planner links (both end in /exec) =====
   // The planner, with school sign-in (Planning team deployment):
@@ -110,7 +110,7 @@
 
   // Self-update: home-screen apps can hold on to an old copy of this page. Check GitHub for a newer
   // launcher build; if there is one, refresh the saved copy and reload once.
-  var LAUNCHER_BUILD = 19;
+  var LAUNCHER_BUILD = 20;
   try {
     fetch(location.pathname, { cache: "reload" }).then(function (r) { return r.text(); }).then(function (t) {
       var m = /var LAUNCHER_BUILD = (\d+)/.exec(t);
@@ -239,10 +239,14 @@
     // Main door: the planner with school sign-in
     var target = TEAM_URL + (rest ? "?" + rest : "");
     if (embedded) { msg.innerHTML = '<main><p><a href="' + target + '" target="_blank">Open TH Planner</a></p></main>'; }
-    else location.replace(target);
-    setTimeout(function () {
-      document.getElementById("slow").innerHTML = 'Taking a while? <a href="' + target + '">Tap here</a>.';
-    }, 12000);
+    else {
+      // The same clipboard screen the signed-in planner shows next, so the hand-off looks like one screen
+      showLoading("display");
+      location.replace(target);
+      setTimeout(function () {
+        var sl = document.getElementById("slow"); if (sl) sl.innerHTML = 'Taking a while? <a href="' + target + '">Tap here</a>.';
+      }, 12000);
+    }
   } else {
     // No-sign-in doors: fetch the planner page and make it THIS page (not a frame inside it), so it fills
     // the phone screen edge to edge and scrolls behind the clock exactly like the schedule app.
@@ -284,33 +288,37 @@
     try { if (!rest || bus) cached = localStorage.getItem(CACHE_KEY); } catch (e) {}
     // A copy saved by an older version can't refresh itself, so start fresh instead
     if (cached && cached.indexOf("thPlannerHost") < 0) cached = null;
-    if (!cached) showLoading(bus ? "bus" : (key ? "team" : "display"));
-    // Still loading after 12 seconds? Say so, with a way to try again
-    setTimeout(function () { var sl = document.getElementById("slow"); if (!shown && sl && !sl.innerHTML) sl.innerHTML = 'Still working on it… <a href="' + location.href + '">Try again</a>'; }, 12000);
-    if (cached) {
-      // Instant start from the copy saved last time; the planner then pulls fresh data
-      // and saves a fresh copy of the page for next time
-      show(cached, true);
-    } else {
-      fetch(PUBLIC_URL + "?format=html" + extra)
-        .then(function (r) {
-          if (!r.ok) throw new Error("the planner answered with error " + r.status);
-          return r.text();
-        })
-        .then(function (html) {
-          if (!/TH Planner/.test(html)) {
-            var t = (/<title>([^<]*)/i.exec(html) || [])[1] || html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 80);
-            throw new Error("got “" + t.trim() + "” instead of the planner");
-          }
-          if (/"mode":\s*"public"/.test(html) && bus) throw new Error("this drivers’ link isn’t valid anymore. Ask for the new one");
-          try { localStorage.setItem(CACHE_KEY, html); } catch (e) {}
-          show(html, false);
-        })
-        .catch(function (err) {
-          if (!shown) document.getElementById("slow").innerHTML = 'Couldn’t load ' + appName + ' (' + String(err && err.message || err).replace(/</g, "&lt;") +
-            '). <a href="' + location.href + '">Try again</a>';
-        });
-    }
+    // Launcher build 20: every open shows the loading screen while a FRESH copy of the page is fetched
+    // (so the page opens with current information). The copy saved last time is the fallback: it's
+    // used if the fresh one takes more than 5 seconds or can't be reached (it then updates itself).
+    showLoading(bus ? "bus" : (key ? "team" : "display"));
+    var settled = false;
+    var useSaved = function () { if (settled || !cached) return false; settled = true; show(cached, true); return true; };
+    if (cached) setTimeout(useSaved, 5000);
+    // Still loading after 12 seconds (and no saved copy)? Say so, with a way to try again
+    setTimeout(function () { var sl = document.getElementById("slow"); if (!shown && sl && !sl.innerHTML) sl.innerHTML = 'Still working on it\u2026 <a href="' + location.href + '">Try again</a>'; }, 12000);
+    fetch(PUBLIC_URL + "?format=html" + extra)
+      .then(function (r) {
+        if (!r.ok) throw new Error("the planner answered with error " + r.status);
+        return r.text();
+      })
+      .then(function (html) {
+        if (settled) return;   // the saved copy is already showing (it refreshes itself)
+        if (!/TH Planner/.test(html)) {
+          var t = (/<title>([^<]*)/i.exec(html) || [])[1] || html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 80);
+          throw new Error("got \u201C" + t.trim() + "\u201D instead of the planner");
+        }
+        if (/"mode":\s*"public"/.test(html) && bus) { cached = null; try { localStorage.removeItem(CACHE_KEY); } catch (e) {} throw new Error("this drivers\u2019 link isn\u2019t valid anymore. Ask for the new one"); }
+        settled = true;
+        try { localStorage.setItem(CACHE_KEY, html); } catch (e) {}
+        show(html, false);
+      })
+      .catch(function (err) {
+        if (settled || useSaved()) return;
+        var sl = document.getElementById("slow");
+        if (sl) sl.innerHTML = 'Couldn\u2019t load ' + appName + ' (' + String(err && err.message || err).replace(/</g, "&lt;") +
+          '). <a href="' + location.href + '">Try again</a>';
+      });
   }
 </script>
 </body>
